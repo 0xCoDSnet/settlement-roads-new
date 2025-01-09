@@ -1,6 +1,7 @@
 package net.countered.settlementroads;
 
 import net.countered.settlementroads.events.ModEventHandler;
+import net.countered.settlementroads.persistence.RoadData;
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -17,6 +18,5 @@ public class SettlementRoads implements ModInitializer {
 		LOGGER.info("Initializing Settlement Roads...");
 
 		ModEventHandler.register();
-
 	}
 }
