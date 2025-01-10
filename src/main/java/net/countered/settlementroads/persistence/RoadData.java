@@ -1,5 +1,6 @@
 package net.countered.settlementroads.persistence;
 
+import net.countered.settlementroads.SettlementRoads;
 import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
@@ -11,22 +12,22 @@ import net.minecraft.world.PersistentState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-
-import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
 public class RoadData extends PersistentState {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     private final static String STRUCTURE_LOCATION_KEY = "villages";
     private final static String CONNECTION_LOCATION_KEY = "connections";
     private final static String START_END_POS_KEY = "start_end_pos";
 
-    private final Set<BlockPos> structureLocations = new HashSet<>();
-    private final Set<BlockPos> structureConnections = new HashSet<>();
-    private final Set<BlockPos> startEndPlacedPos = new HashSet<>();
+    private final List<BlockPos> structureLocations = new ArrayList<BlockPos>();
+    private final List<BlockPos> structureConnections = new ArrayList<BlockPos>();
+    private final List<BlockPos> startEndPlacedPos = new ArrayList<BlockPos>();
 
     private final ServerWorld world;
 
@@ -85,7 +86,7 @@ public class RoadData extends PersistentState {
         this.markDirty();
     }
 
-    public Set<BlockPos> getStructureLocations() {
+    public List<BlockPos> getStructureLocations() {
         return structureLocations;
     }
 }

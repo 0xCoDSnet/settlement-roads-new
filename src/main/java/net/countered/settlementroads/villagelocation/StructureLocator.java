@@ -1,5 +1,6 @@
 package net.countered.settlementroads.villagelocation;
 
+import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.registry.tag.StructureTags;
 import net.minecraft.server.world.ServerWorld;
@@ -11,11 +12,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static net.countered.settlementroads.SettlementRoads.MOD_ID;
-
 public class StructureLocator {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ServerWorld serverWorld;
@@ -37,7 +36,6 @@ public class StructureLocator {
                 );
                 roadData.addLocation(structurePos);
                 LOGGER.info("Located village: " + structurePos);
-                LOGGER.info(roadData.getStructureLocations().toString());
             }
             shutdown();
         });
