@@ -81,11 +81,6 @@ public class RoadData extends PersistentState {
         return roadData;
     }
 
-    public void addLocation(BlockPos pos) {
-        structureLocations.add(pos);
-        this.markDirty();
-    }
-
     public List<BlockPos> getStructureLocations() {
         return structureLocations;
     }

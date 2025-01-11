@@ -26,11 +26,10 @@ public class SettlementRoads implements ModInitializer {
 
 	public static final String MOD_ID = "settlement-roads";
 
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
 	@Override
 	public void onInitialize() {
-
 		LOGGER.info("Initializing Settlement Roads...");
 		registerFeatures();
 		ModEventHandler.register();
@@ -41,7 +40,7 @@ public class SettlementRoads implements ModInitializer {
 		Registry.register(Registries.FEATURE, Identifier.of(MOD_ID, "road_feature"), RoadFeature.ROAD_FEATURE);
 		BiomeModifications.addFeature(
 				BiomeSelectors.all(),
-				GenerationStep.Feature.RAW_GENERATION,
+				GenerationStep.Feature.LOCAL_MODIFICATIONS,
 				RoadFeature.ROAD_FEATURE_PLACED_KEY
 		);
 	}
