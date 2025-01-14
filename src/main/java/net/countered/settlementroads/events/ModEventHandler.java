@@ -1,10 +1,13 @@
 package net.countered.settlementroads.events;
 
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.helpers.Helpers;
 import net.countered.settlementroads.persistence.RoadData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.minecraft.command.argument.RegistryPredicateArgumentType;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import org.slf4j.Logger;
@@ -17,15 +20,30 @@ public class ModEventHandler {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    private static final int locateCount = 10;
-
     public static void register() {
-        ServerWorldEvents.LOAD.register(ModEventHandler::onWorldLoaded);
+        ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
+            try {
+                onWorldLoaded(minecraftServer, serverWorld);
+            } catch (CommandSyntaxException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
-    private static void onWorldLoaded(MinecraftServer minecraftServer, ServerWorld serverWorld) {
-        if (RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().isEmpty()) {
-            Helpers.locateStructures(serverWorld, 10);
+    private static void onWorldLoaded(MinecraftServer minecraftServer, ServerWorld serverWorld) throws CommandSyntaxException {
+        if (!RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().isEmpty()) {
+            return;
+        }
+        try {
+            // Try as key first
+            Helpers.locateStructures(serverWorld, ModConfig.structureToLocate, ModConfig.rawNumberOfStructures, false);
+        } catch (IllegalArgumentException eKey) {
+            try {
+                // If key parsing fails, try as tag
+                Helpers.locateStructures(serverWorld, ModConfig.structureToLocate, ModConfig.rawNumberOfStructures, true);
+            } catch (Exception eTag) {
+                LOGGER.error("Failed to locate structure as both key and tag: " + ModConfig.structureToLocate, eTag);
+            }
         }
     }
 }

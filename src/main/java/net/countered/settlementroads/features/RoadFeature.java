@@ -67,6 +67,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         StructureWorldAccess structureWorldAccess = context.getWorld();
         BlockPos genPos = context.getOrigin();
         ChunkPos currentChunk = new ChunkPos(genPos);
+
         for (int i = 0; i < roadData.getStructureLocations().size() - 1; i++) {
             BlockPos start = roadData.getStructureLocations().get(i);
             BlockPos end = roadData.getStructureLocations().get(i + 1);
@@ -88,7 +89,12 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 if (currentChunk.equals(pathChunk)) {
                     BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, pathPos);
                     setBlockState(structureWorldAccess, placedPos.down(), material);
-                    LOGGER.info("Placed road at {}", placedPos);
+                    for (int j = 0; i < 5; i++) {
+                        if (structureWorldAccess.getBlockState(placedPos.up(i)).equals(Blocks.AIR.getDefaultState())) {
+                            break;
+                        }
+                        setBlockState(structureWorldAccess, placedPos, Blocks.AIR.getDefaultState());
+                    }
                 }
             }
         }
@@ -115,9 +121,10 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         int steps = Math.max(Math.abs(deltaX), Math.abs(deltaZ));
 
         for (int i = 0; i <= steps; i++) {
-            int x = start.getX() + (deltaX * i / steps);
-            int z = start.getZ() + (deltaZ * i / steps);
-            for (int w = -width / 2; w <= width / 2; w++) {
+            double t = i / (double) steps;
+            int x = (int) Math.round(start.getX() * (1 - t) + end.getX() * t);
+            int z = (int) Math.round(start.getZ() * (1 - t) + end.getZ() * t);
+            for (int w = (int) Math.round((double) -width / 2); w <= (int) Math.round((double) width / 2); w++) {
                 path.add(new BlockPos(x + w, start.getY(), z));
             }
         }

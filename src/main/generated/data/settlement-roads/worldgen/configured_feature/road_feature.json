@@ -7,6 +7,15 @@
       },
       {
         "Name": "minecraft:emerald_block"
+      },
+      {
+        "Name": "minecraft:gold_block"
+      },
+      {
+        "Name": "minecraft:iron_block"
+      },
+      {
+        "Name": "minecraft:dirt_path"
       }
     ],
     "natural": [
@@ -25,7 +34,6 @@
       9
     ],
     "width": [
-      2,
       3,
       4,
       5
