@@ -26,12 +26,17 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
+
+    private static final Map<Integer, BlockState> roadMaterials = new HashMap<>();
 
     private static int counter = 1;
 
@@ -49,46 +54,48 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         RoadData roadData = RoadData.getOrCreateRoadData(serverWorld);
 
-        if (locateStructure(300)){
-            Helpers.locateStructures(serverWorld, 1);
-            LOGGER.info(roadData.getStructureLocations().toString());
-        }
-
-        StructureWorldAccess structureWorldAccess = context.getWorld();
-        BlockPos genPos = context.getOrigin();
-
-        if (roadData.getStructureLocations().isEmpty()) {
+        if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
 
-        for (BlockPos pos : roadData.getStructureLocations()) {
-            if (new ChunkPos(pos.getX(), pos.getZ()).equals(new ChunkPos(genPos.getX(), genPos.getZ()))) {
-                setBlockState(structureWorldAccess, genPos.up(10), Blocks.DIAMOND_BLOCK.getDefaultState());
-                LOGGER.info("Placed road at {}", genPos);
-            }
-        }
+        generateRoad(roadData, context);
+
         return true;
     }
 
-    private void generateRoad(WorldAccess worldAccess, BlockPos nearestVillage, BlockPos nearestVillageToFirst, FeatureContext<RoadFeatureConfig> context) {
+    private void generateRoad(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
+        StructureWorldAccess structureWorldAccess = context.getWorld();
+        BlockPos genPos = context.getOrigin();
+        ChunkPos currentChunk = new ChunkPos(genPos);
+        for (int i = 0; i < roadData.getStructureLocations().size() - 1; i++) {
+            BlockPos start = roadData.getStructureLocations().get(i);
+            BlockPos end = roadData.getStructureLocations().get(i + 1);
 
-        Random random = context.getRandom();
+            int roadId = calculateRoadId(start, end);
+            Random deterministicRandom = Random.create(roadId);
 
-        List<BlockState> materialsList = context.getConfig().getMaterials();
-        BlockState material = materialsList.get(random.nextInt(materialsList.size()));
-        List<Integer> widthList = context.getConfig().getWidths();
-        int width = widthList.get(random.nextInt(widthList.size()));
-        List<Integer> qualityList = context.getConfig().getQualities();
-        int quality = qualityList.get(random.nextInt(qualityList.size()));
-        List<Integer> naturalList = context.getConfig().getNatural();
-        int natural = naturalList.get(random.nextInt(naturalList.size()));
+            // Deterministically select the material
+            List<BlockState> materialsList = context.getConfig().getMaterials();
+            BlockState material = materialsList.get(deterministicRandom.nextInt(materialsList.size()));
 
-        for (int i = 0; i < 50; i++) {
-            BlockPos.Mutable shiftedPos = nearestVillage.mutableCopy().set(nearestVillage.getX() + i, nearestVillage.getY(), nearestVillage.getZ());
-            shiftedPos.setY(worldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, shiftedPos).getY());
-            worldAccess.setBlockState(shiftedPos, material, 3);
-            LOGGER.info("Placing block at {}", shiftedPos);
+            // Deterministically select the width
+            List<Integer> widthList = context.getConfig().getWidths();
+            int width = widthList.get(deterministicRandom.nextInt(widthList.size()));
+
+            List<BlockPos> path = calculateStraightPath(start, end, width);
+            for (BlockPos pathPos : path) {
+                ChunkPos pathChunk = new ChunkPos(pathPos);
+                if (currentChunk.equals(pathChunk)) {
+                    BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, pathPos);
+                    setBlockState(structureWorldAccess, placedPos.down(), material);
+                    LOGGER.info("Placed road at {}", placedPos);
+                }
+            }
         }
+    }
+
+    private int calculateRoadId(BlockPos start, BlockPos end) {
+        return start.hashCode() ^ end.hashCode();
     }
 
     private Boolean locateStructure(int chunksNeeded) {
@@ -99,6 +106,22 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         LOGGER.info("Locating structure dynamically");
         counter = 1;
         return true;
+    }
+
+    private List<BlockPos> calculateStraightPath(BlockPos start, BlockPos end, int width) {
+        List<BlockPos> path = new ArrayList<>();
+        int deltaX = end.getX() - start.getX();
+        int deltaZ = end.getZ() - start.getZ();
+        int steps = Math.max(Math.abs(deltaX), Math.abs(deltaZ));
+
+        for (int i = 0; i <= steps; i++) {
+            int x = start.getX() + (deltaX * i / steps);
+            int z = start.getZ() + (deltaZ * i / steps);
+            for (int w = -width / 2; w <= width / 2; w++) {
+                path.add(new BlockPos(x + w, start.getY(), z));
+            }
+        }
+        return path;
     }
 }
 
