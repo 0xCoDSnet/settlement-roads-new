@@ -2,14 +2,12 @@ package net.countered.settlementroads.features;
 
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
-import net.countered.settlementroads.events.ModEventHandler;
-import net.countered.settlementroads.helpers.Helpers;
+import net.countered.settlementroads.helpers.RoadMath;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.StructureTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -17,8 +15,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.StructureWorldAccess;
-import net.minecraft.world.WorldAccess;
-import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.PlacedFeature;
@@ -26,17 +22,16 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
-    private static final Map<Integer, BlockState> roadMaterials = new HashMap<>();
+    // Cache road paths per segment (start, end)
+    public static final Map<Integer, Set<BlockPos>> roadBlocksCache = new HashMap<>();
+    // Cache chunks where roads will be generated
+    public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
 
     private static int counter = 1;
 
@@ -67,34 +62,45 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         StructureWorldAccess structureWorldAccess = context.getWorld();
         BlockPos genPos = context.getOrigin();
         ChunkPos currentChunk = new ChunkPos(genPos);
-
+        if (!roadChunksCache.isEmpty()) {
+            if (!roadChunksCache.contains(currentChunk)){
+                return;
+            }
+        }
+        // Iterate over all road segments
         for (int i = 0; i < roadData.getStructureLocations().size() - 1; i++) {
             BlockPos start = roadData.getStructureLocations().get(i);
             BlockPos end = roadData.getStructureLocations().get(i + 1);
 
+            // Generate a unique road identifier for the current road segment
             int roadId = calculateRoadId(start, end);
             Random deterministicRandom = Random.create(roadId);
-
-            // Deterministically select the material
             List<BlockState> materialsList = context.getConfig().getMaterials();
             BlockState material = materialsList.get(deterministicRandom.nextInt(materialsList.size()));
-
-            // Deterministically select the width
             List<Integer> widthList = context.getConfig().getWidths();
             int width = widthList.get(deterministicRandom.nextInt(widthList.size()));
 
-            List<BlockPos> path = calculateStraightPath(start, end, width);
-            for (BlockPos pathPos : path) {
+            // If the road path is already cached, use it
+            Set<BlockPos> cachedPath = roadBlocksCache.get(roadId);
+            if (cachedPath == null) {
+                // If not cached, generate and cache the road path
+                List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
+                Set<BlockPos> path = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end));
+
+                // Cache the path positions for the current road segment
+                roadBlocksCache.put(roadId, path);
+
+                // Use the generated path directly for the current chunk
+                cachedPath = path;
+            }
+            // Now use the cached path for block placement
+            for (BlockPos pathPos : cachedPath) {
                 ChunkPos pathChunk = new ChunkPos(pathPos);
                 if (currentChunk.equals(pathChunk)) {
                     BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, pathPos);
                     setBlockState(structureWorldAccess, placedPos.down(), material);
-                    for (int j = 0; i < 5; i++) {
-                        if (structureWorldAccess.getBlockState(placedPos.up(i)).equals(Blocks.AIR.getDefaultState())) {
-                            break;
-                        }
-                        setBlockState(structureWorldAccess, placedPos, Blocks.AIR.getDefaultState());
-                    }
+                    setBlockState(structureWorldAccess, placedPos, Blocks.AIR.getDefaultState());
+                    setBlockState(structureWorldAccess, placedPos.up(), Blocks.AIR.getDefaultState());
                 }
             }
         }
@@ -112,23 +118,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         LOGGER.info("Locating structure dynamically");
         counter = 1;
         return true;
-    }
-
-    private List<BlockPos> calculateStraightPath(BlockPos start, BlockPos end, int width) {
-        List<BlockPos> path = new ArrayList<>();
-        int deltaX = end.getX() - start.getX();
-        int deltaZ = end.getZ() - start.getZ();
-        int steps = Math.max(Math.abs(deltaX), Math.abs(deltaZ));
-
-        for (int i = 0; i <= steps; i++) {
-            double t = i / (double) steps;
-            int x = (int) Math.round(start.getX() * (1 - t) + end.getX() * t);
-            int z = (int) Math.round(start.getZ() * (1 - t) + end.getZ() * t);
-            for (int w = (int) Math.round((double) -width / 2); w <= (int) Math.round((double) width / 2); w++) {
-                path.add(new BlockPos(x + w, start.getY(), z));
-            }
-        }
-        return path;
     }
 }
 
