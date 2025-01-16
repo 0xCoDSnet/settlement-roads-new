@@ -13,8 +13,10 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.world.HeightLimitView;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.StructureWorldAccess;
+import net.minecraft.world.gen.chunk.ChunkNoiseSampler;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import net.minecraft.world.gen.feature.Feature;
 import net.minecraft.world.gen.feature.PlacedFeature;
@@ -101,6 +103,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     setBlockState(structureWorldAccess, placedPos.down(), material);
                     setBlockState(structureWorldAccess, placedPos, Blocks.AIR.getDefaultState());
                     setBlockState(structureWorldAccess, placedPos.up(), Blocks.AIR.getDefaultState());
+                    setBlockState(structureWorldAccess, placedPos.up(2), Blocks.AIR.getDefaultState());
+                    setBlockState(structureWorldAccess, placedPos.up(3), Blocks.AIR.getDefaultState());
                 }
             }
         }

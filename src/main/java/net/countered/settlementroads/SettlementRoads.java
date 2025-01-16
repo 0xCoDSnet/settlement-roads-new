@@ -32,7 +32,7 @@ public class SettlementRoads implements ModInitializer {
 		Registry.register(Registries.FEATURE, Identifier.of(MOD_ID, "road_feature"), RoadFeature.ROAD_FEATURE);
 		BiomeModifications.addFeature(
 				BiomeSelectors.all(),
-				GenerationStep.Feature.LOCAL_MODIFICATIONS,
+				GenerationStep.Feature.UNDERGROUND_STRUCTURES,
 				RoadFeature.ROAD_FEATURE_PLACED_KEY
 		);
 	}

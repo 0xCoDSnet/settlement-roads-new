@@ -8,25 +8,6 @@ import net.minecraft.util.math.random.Random;
 import java.util.*;
 
 public class RoadMath {
-    /*
-    public static List<BlockPos> calculateStraightPath(BlockPos start, BlockPos end, int width) {
-        List<BlockPos> path = new ArrayList<>();
-        int deltaX = end.getX() - start.getX();
-        int deltaZ = end.getZ() - start.getZ();
-        double steps = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-
-        for (int i = 0; i <= steps; i++) {
-            double t = i / steps;
-            int x = (int) Math.round(start.getX() * (1 - t) + end.getX() * t);
-            int z = (int) Math.round(start.getZ() * (1 - t) + end.getZ() * t);
-            for (int w = (int) Math.round((double) -width / 2); w <= (int) Math.round((double) width / 2); w++) {
-                path.add(new BlockPos(x + w, start.getY(), z));
-            }
-        }
-        return path;
-    }
-
-     */
 
     // Dynamically calculate steps based on the road length
     public static int calculateDynamicSteps(BlockPos start, BlockPos end) {
@@ -34,7 +15,7 @@ public class RoadMath {
         int deltaZ = Math.abs(end.getZ() - start.getZ());
 
         // Calculate the straight-line distance
-        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 4);
+        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 10);
     }
 
     public static Set<BlockPos> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps) {
@@ -77,24 +58,12 @@ public class RoadMath {
                 double px = -dz / length;
                 double pz = dx / length;
 
-                for (double w = (double) -width / 2; w <= (double) width / 2; w += 0.5) {
+                for (double w =  (-width / 2.0) - 0.5; w <= (width / 2.0) - 0.5; w += 0.1) {
                     int wx = (int) Math.round(xPos + px * w);
                     int wz = (int) Math.round(zPos + pz * w);
-                    BlockPos centerPos = new BlockPos(wx, p1.getY(), wz);
-                    // Add a small radius around the calculated position
-                    double radius = 0.5;
-                    for (double dxr = -radius; dxr <= radius; dxr += 0.5) {
-                        for (double dzr = -radius; dzr <= radius; dzr += 0.5) {
-                            double distance = Math.sqrt(dxr * dxr + dzr * dzr);
-                            if (distance <= radius) {
-                                int offsetX = (int) Math.round(centerPos.getX() + dxr);
-                                int offsetZ = (int) Math.round(centerPos.getZ() + dzr);
-                                BlockPos offsetPos = new BlockPos(offsetX, centerPos.getY(), offsetZ);
-                                path.add(offsetPos);
-                                RoadFeature.roadChunksCache.add(new ChunkPos(offsetPos));
-                            }
-                        }
-                    }
+                    BlockPos centerPos = new BlockPos(wx, 0, wz);
+                    path.add(centerPos);
+                    RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
                 }
             }
         }
@@ -104,31 +73,46 @@ public class RoadMath {
 
     public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {
         List<BlockPos> controlPoints = new ArrayList<>();
-        controlPoints.add(start);
 
-        double distance = start.getManhattanDistance(end);
-        int count = (int) Math.round(distance / 300); // More points for longer roads
-        int deviation = (int) Math.round(distance / 10); // Increase deviation with road length
+        // Calculate vectors from start to end
+        double dx = end.getX() - start.getX();
+        double dz = end.getZ() - start.getZ();
+        double distance = Math.sqrt(dx * dx + dz * dz);
+
+        // Normalize the vector and scale it to 50 blocks
+        double scale = 50 / distance;
+        double offsetX = dx * scale;
+        double offsetZ = dz * scale;
+
+        // Offset the start and end points by 50 blocks
+        BlockPos adjustedStart = new BlockPos((int) (start.getX() + offsetX), start.getY(), (int) (start.getZ() + offsetZ));
+        BlockPos adjustedEnd = new BlockPos((int) (end.getX() - offsetX), end.getY(), (int) (end.getZ() - offsetZ));
+
+        controlPoints.add(adjustedStart);
+
+        double totalDistance = adjustedStart.getManhattanDistance(adjustedEnd);
+        int step = 100;
+        int deviationBound = (int) (totalDistance / 100);
+        int count = (int) Math.ceil(totalDistance / step);
 
         for (int i = 1; i < count; i++) {
             double t = i / (double) count;
-            int x = (int) (start.getX() * (1 - t) + end.getX() * t);
-            int z = (int) (start.getZ() * (1 - t) + end.getZ() * t);
+            int x = (int) (adjustedStart.getX() * (1 - t) + adjustedEnd.getX() * t);
+            int z = (int) (adjustedStart.getZ() * (1 - t) + adjustedEnd.getZ() * t);
 
-            int deviationBound = Math.max(50, deviation / 2); // Ensure the bound is at least 50
-            int orthogonalX = random.nextBetween(50, deviationBound) * (random.nextBoolean() ? 1 : -1);
-            int orthogonalZ = random.nextBetween(50, deviationBound) * (random.nextBoolean() ? 1 : -1);
+            int orthogonalX = random.nextInt(deviationBound) * (random.nextBoolean() ? 1 : -1);
+            int orthogonalZ = random.nextInt(deviationBound) * (random.nextBoolean() ? 1 : -1);
 
-            // Ensure the new point is not moving backwards
-            x = Math.max(Math.min(x + orthogonalX, Math.max(start.getX(), end.getX())), Math.min(start.getX(), end.getX()));
-            z = Math.max(Math.min(z + orthogonalZ, Math.max(start.getZ(), end.getZ())), Math.min(start.getZ(), end.getZ()));
+            x += orthogonalX;
+            z += orthogonalZ;
 
-            controlPoints.add(new BlockPos(x, start.getY(), z));
+            controlPoints.add(new BlockPos(x, 0, z));
         }
 
-        controlPoints.add(end);
+        controlPoints.add(adjustedEnd);
         return controlPoints;
     }
+
 
     // debugging
     public static void estimateMemoryUsage() {
