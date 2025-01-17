@@ -36,6 +36,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
 
     private static int counter = 1;
+    private static int placedBlocksCounter = 1;
 
     public static final RegistryKey<PlacedFeature> ROAD_FEATURE_PLACED_KEY =
             RegistryKey.of(RegistryKeys.PLACED_FEATURE, Identifier.of(SettlementRoads.MOD_ID, "road_feature_placed"));
@@ -69,10 +70,21 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 return;
             }
         }
-        // Iterate over all road segments
-        for (int i = 0; i < roadData.getStructureLocations().size() - 1; i++) {
-            BlockPos start = roadData.getStructureLocations().get(i);
-            BlockPos end = roadData.getStructureLocations().get(i + 1);
+
+        List<BlockPos> villages = roadData.getStructureLocations();
+        Map<BlockPos, BlockPos> closestVillageMap = new HashMap<>();
+
+        for (BlockPos village : villages) {
+            BlockPos closestVillage = findClosestVillage(village, villages);
+            if (closestVillage != null) {
+                closestVillageMap.put(village, closestVillage);
+            }
+        }
+
+        // Generate roads for each village to its closest village
+        for (Map.Entry<BlockPos, BlockPos> entry : closestVillageMap.entrySet()) {
+            BlockPos start = entry.getKey();
+            BlockPos end = entry.getValue();
 
             // Generate a unique road identifier for the current road segment
             int roadId = calculateRoadId(start, end);
@@ -95,23 +107,54 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 // Use the generated path directly for the current chunk
                 cachedPath = path;
             }
+
+
             // Now use the cached path for block placement
             for (BlockPos pathPos : cachedPath) {
                 ChunkPos pathChunk = new ChunkPos(pathPos);
                 if (currentChunk.equals(pathChunk)) {
                     BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, pathPos);
-                    setBlockState(structureWorldAccess, placedPos.down(), material);
-                    setBlockState(structureWorldAccess, placedPos, Blocks.AIR.getDefaultState());
-                    setBlockState(structureWorldAccess, placedPos.up(), Blocks.AIR.getDefaultState());
-                    setBlockState(structureWorldAccess, placedPos.up(2), Blocks.AIR.getDefaultState());
-                    setBlockState(structureWorldAccess, placedPos.up(3), Blocks.AIR.getDefaultState());
+                    placeOnSurface(structureWorldAccess, placedPos, material);
                 }
             }
         }
     }
 
+    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placedPos, BlockState material) {
+        // Check if the block is water
+        BlockState blockStateAtPos = structureWorldAccess.getBlockState(placedPos.down());
+        if (blockStateAtPos.getBlock() == Blocks.WATER) {
+            // If it's water, place a buoy every 50 blocks
+            if (placedBlocksCounter % 100 == 0) {
+                // Place the buoy
+                setBlockState(structureWorldAccess, placedPos.down(), Blocks.BARREL.getDefaultState());
+            }
+            placedBlocksCounter++;  // Increment the counter for the next 50 blocks
+        } else {
+            // If not water, just place the road
+            setBlockState(structureWorldAccess, placedPos.down(), material);
+            placedBlocksCounter = 1;
+        }
+    }
+
     private int calculateRoadId(BlockPos start, BlockPos end) {
         return start.hashCode() ^ end.hashCode();
+    }
+
+    private BlockPos findClosestVillage(BlockPos currentVillage, List<BlockPos> allVillages) {
+        BlockPos closestVillage = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (BlockPos village : allVillages) {
+            if (!village.equals(currentVillage)) {
+                double distance = currentVillage.getSquaredDistance(village);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestVillage = village;
+                }
+            }
+        }
+        return closestVillage;
     }
 
     private Boolean locateStructure(int chunksNeeded) {

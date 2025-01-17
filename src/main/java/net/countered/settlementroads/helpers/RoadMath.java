@@ -15,7 +15,7 @@ public class RoadMath {
         int deltaZ = Math.abs(end.getZ() - start.getZ());
 
         // Calculate the straight-line distance
-        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 10);
+        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 2);
     }
 
     public static Set<BlockPos> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps) {
@@ -91,8 +91,8 @@ public class RoadMath {
         controlPoints.add(adjustedStart);
 
         double totalDistance = adjustedStart.getManhattanDistance(adjustedEnd);
-        int step = 100;
-        int deviationBound = (int) (totalDistance / 100);
+        int step = 150;
+        int deviationBound = 40;
         int count = (int) Math.ceil(totalDistance / step);
 
         for (int i = 1; i < count; i++) {
@@ -100,8 +100,8 @@ public class RoadMath {
             int x = (int) (adjustedStart.getX() * (1 - t) + adjustedEnd.getX() * t);
             int z = (int) (adjustedStart.getZ() * (1 - t) + adjustedEnd.getZ() * t);
 
-            int orthogonalX = random.nextInt(deviationBound) * (random.nextBoolean() ? 1 : -1);
-            int orthogonalZ = random.nextInt(deviationBound) * (random.nextBoolean() ? 1 : -1);
+            int orthogonalX = random.nextBetween(20, deviationBound) * (random.nextBoolean() ? 1 : -1);
+            int orthogonalZ = random.nextBetween(20, deviationBound) * (random.nextBoolean() ? 1 : -1);
 
             x += orthogonalX;
             z += orthogonalZ;
