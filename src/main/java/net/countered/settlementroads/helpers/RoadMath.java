@@ -58,12 +58,12 @@ public class RoadMath {
                 double px = -dz / length;
                 double pz = dx / length;
 
-                for (double w =  (-width / 2.0) - 0.5; w <= (width / 2.0) - 0.5; w += 0.1) {
+                for (double w =  (-width / 2.0); w <= (width / 2.0); w += 0.1) {
                     int wx = (int) Math.round(xPos + px * w);
                     int wz = (int) Math.round(zPos + pz * w);
-                    BlockPos centerPos = new BlockPos(wx, 0, wz);
-                    path.add(centerPos);
-                    RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
+                    BlockPos placePos = new BlockPos(wx, 0, wz);
+                    path.add(placePos);
+                    RoadFeature.roadChunksCache.add(new ChunkPos(placePos));
                 }
             }
         }
