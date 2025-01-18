@@ -25,11 +25,12 @@ public class ModConfiguredFeatures {
         context.register(RoadFeature.ROAD_FEATURE_KEY,
                 new ConfiguredFeature<>(RoadFeature.ROAD_FEATURE,
                         new RoadFeatureConfig(
+                                List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.DIRT_PATH.getDefaultState()),                                      // artificial
                                 List.of(Blocks.DIAMOND_BLOCK.getDefaultState(), Blocks.EMERALD_BLOCK.getDefaultState(),
-                                        Blocks.GOLD_BLOCK.getDefaultState(), Blocks.IRON_BLOCK.getDefaultState(), Blocks.DIRT_PATH.getDefaultState()),
-                                List.of(2,3,4,5),           // width
-                                List.of(1,2,3,4,5,6,7,8,9), // quality
-                                List.of(1,2)                // natural
+                                        Blocks.GOLD_BLOCK.getDefaultState(), Blocks.IRON_BLOCK.getDefaultState(), Blocks.DIRT_PATH.getDefaultState()),  // natural
+                                List.of(2,3,4),                                                                                                         // width
+                                List.of(1,2,3,4,5,6,7,8,9),                                                                                             // quality
+                                List.of(1,2)                                                                                                            // natural
                         )
                 )
         );

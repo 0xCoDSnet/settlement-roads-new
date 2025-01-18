@@ -33,6 +33,13 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Cache chunks where roads will be generated
     public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
 
+    private static Set<BlockState> dontPlaceHere = new HashSet<>();
+    static {
+        dontPlaceHere.add(Blocks.PACKED_ICE.getDefaultState());
+        dontPlaceHere.add(Blocks.ICE.getDefaultState());
+        dontPlaceHere.add(Blocks.BLUE_ICE.getDefaultState());
+    }
+
     private static int counter = 1;
 
     public static final RegistryKey<PlacedFeature> ROAD_FEATURE_PLACED_KEY =
@@ -112,7 +119,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     private BlockState getRandomMaterial(int roadId, FeatureContext<RoadFeatureConfig> context) {
         Random deterministicRandom = Random.create(roadId);
-        List<BlockState> materialsList = context.getConfig().getMaterials();
+        List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
         return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
     }
 
@@ -128,7 +135,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(placedPos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (placedInWaterCounter % (20*width) == 0) {
+            if (placedInWaterCounter % (35*width) == 0) {
                 setBlockState(structureWorldAccess, placedPos.down(), Blocks.OAK_PLANKS.getDefaultState());
                 setBlockState(structureWorldAccess, placedPos, Blocks.OAK_FENCE.getDefaultState());
                 placedInWaterCounter = 1;
@@ -136,6 +143,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             placedInWaterCounter++;
         } else {
             // If not water, just place the road
+            if (dontPlaceHere.contains(blockStateAtPos)){
+                return;
+            }
             setBlockState(structureWorldAccess, placedPos.down(), material);
             setBlockState(structureWorldAccess, placedPos.up(0), Blocks.AIR.getDefaultState());
             setBlockState(structureWorldAccess, placedPos.up(1), Blocks.AIR.getDefaultState());

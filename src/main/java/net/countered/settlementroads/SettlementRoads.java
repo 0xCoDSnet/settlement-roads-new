@@ -19,6 +19,16 @@ public class SettlementRoads implements ModInitializer {
 
 	public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
+	// TODO
+	// Biome specific road changes
+	// Dynamic locating
+	// Location lag reducing
+	// Roads reducing in quality over distance
+	// Mile Markers
+	// Bridges
+	// Lanterns
+	// Benches
+
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Initializing Settlement Roads...");

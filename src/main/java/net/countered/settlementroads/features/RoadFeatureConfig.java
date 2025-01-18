@@ -9,14 +9,16 @@ import java.util.List;
 
 public class RoadFeatureConfig implements FeatureConfig {
 
-    public final List<BlockState> materials;
+    public final List<BlockState> artificialMaterials;
+    public final List<BlockState> naturalMaterials;
     public final List<Integer> width;
     public final List<Integer> quality;
     public final List<Integer> natural;
 
     public static final Codec<RoadFeatureConfig> CODEC = RecordCodecBuilder.create(
             instance -> instance.group(
-                            BlockState.CODEC.listOf().fieldOf("materials").forGetter(RoadFeatureConfig::getMaterials),
+                            BlockState.CODEC.listOf().fieldOf("artificialMaterials").forGetter(RoadFeatureConfig::getArtificialMaterials),
+                            BlockState.CODEC.listOf().fieldOf("naturalMaterials").forGetter(RoadFeatureConfig::getNaturalMaterials),
                             Codec.INT.listOf().fieldOf("width").forGetter(RoadFeatureConfig::getWidths),
                             Codec.INT.listOf().fieldOf("quality").forGetter(RoadFeatureConfig::getQualities),
                             Codec.INT.listOf().fieldOf("natural").forGetter(RoadFeatureConfig::getNatural)
@@ -25,15 +27,19 @@ public class RoadFeatureConfig implements FeatureConfig {
 
 
 
-    public RoadFeatureConfig(List<BlockState> materials, List<Integer> width, List<Integer> quality, List<Integer> natural) {
-        this.materials = materials;
+    public RoadFeatureConfig(List<BlockState> artificialMaterials, List<BlockState> naturalMaterials, List<Integer> width, List<Integer> quality, List<Integer> natural) {
+        this.artificialMaterials = artificialMaterials;
+        this.naturalMaterials = naturalMaterials;
         this.width = width;
         this.quality = quality;
         this.natural = natural;
     }
 
-    public List<BlockState> getMaterials() {
-        return materials;
+    public List<BlockState> getArtificialMaterials() {
+        return artificialMaterials;
+    }
+    public List<BlockState> getNaturalMaterials() {
+        return naturalMaterials;
     }
     public List<Integer> getWidths() {
         return width;

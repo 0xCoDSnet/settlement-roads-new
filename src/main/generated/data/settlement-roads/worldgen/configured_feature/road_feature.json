@@ -1,7 +1,19 @@
 {
   "type": "settlement-roads:road_feature",
   "config": {
-    "materials": [
+    "artificialMaterials": [
+      {
+        "Name": "minecraft:coarse_dirt"
+      },
+      {
+        "Name": "minecraft:dirt_path"
+      }
+    ],
+    "natural": [
+      1,
+      2
+    ],
+    "naturalMaterials": [
       {
         "Name": "minecraft:diamond_block"
       },
@@ -18,10 +30,6 @@
         "Name": "minecraft:dirt_path"
       }
     ],
-    "natural": [
-      1,
-      2
-    ],
     "quality": [
       1,
       2,
@@ -36,8 +44,7 @@
     "width": [
       2,
       3,
-      4,
-      5
+      4
     ]
   }
 }
