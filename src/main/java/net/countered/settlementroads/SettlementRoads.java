@@ -28,6 +28,7 @@ public class SettlementRoads implements ModInitializer {
 	// Bridges
 	// Lanterns
 	// Benches
+	// make buoys more consistent
 
 	@Override
 	public void onInitialize() {

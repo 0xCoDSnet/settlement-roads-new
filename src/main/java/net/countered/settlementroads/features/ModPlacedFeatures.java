@@ -28,7 +28,8 @@ public class ModPlacedFeatures {
         var configuredFeatureRegistryEntryLookup = context.getRegistryLookup(RegistryKeys.CONFIGURED_FEATURE);
 
         context.register(RoadFeature.ROAD_FEATURE_PLACED_KEY,
-                new PlacedFeature(configuredFeatureRegistryEntryLookup.getOrThrow(RoadFeature.ROAD_FEATURE_KEY), List.of(HeightmapPlacementModifier.of(Heightmap.Type.WORLD_SURFACE_WG)))
+                new PlacedFeature(configuredFeatureRegistryEntryLookup.getOrThrow(RoadFeature.ROAD_FEATURE_KEY),
+                        List.of(HeightmapPlacementModifier.of(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES)))
         );
     }
 }

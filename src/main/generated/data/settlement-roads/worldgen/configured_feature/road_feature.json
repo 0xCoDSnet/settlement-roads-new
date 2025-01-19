@@ -3,18 +3,6 @@
   "config": {
     "artificialMaterials": [
       {
-        "Name": "minecraft:coarse_dirt"
-      },
-      {
-        "Name": "minecraft:dirt_path"
-      }
-    ],
-    "natural": [
-      1,
-      2
-    ],
-    "naturalMaterials": [
-      {
         "Name": "minecraft:diamond_block"
       },
       {
@@ -25,6 +13,14 @@
       },
       {
         "Name": "minecraft:iron_block"
+      },
+      {
+        "Name": "minecraft:dirt_path"
+      }
+    ],
+    "naturalMaterials": [
+      {
+        "Name": "minecraft:coarse_dirt"
       },
       {
         "Name": "minecraft:dirt_path"

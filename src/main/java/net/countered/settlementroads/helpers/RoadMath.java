@@ -21,7 +21,7 @@ public class RoadMath {
         return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 2);
     }
 
-    public static Set<BlockPos> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps) {
+    public static Set<BlockPos> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps, Boolean natural, Random deterministicRandom) {
         Set<BlockPos> path = new HashSet<>();
 
         for (int i = 0; i < controlPoints.size() - 1; i++) {
@@ -63,9 +63,11 @@ public class RoadMath {
 
                     for (int fx = (int) Math.floor(adjustedX); fx <= (int) Math.ceil(adjustedX); fx++) {
                         for (int fz = (int) Math.floor(adjustedZ); fz <= (int) Math.ceil(adjustedZ); fz++) {
-                            BlockPos placePos = new BlockPos(fx, 0, fz);
-                            path.add(placePos);
-                            RoadFeature.roadChunksCache.add(new ChunkPos(placePos));
+                            if (!natural || deterministicRandom.nextDouble() < 0.005) {
+                                BlockPos placePos = new BlockPos(fx, 0, fz);
+                                path.add(placePos);
+                                RoadFeature.roadChunksCache.add(new ChunkPos(placePos));
+                            }
                         }
                     }
                 }
@@ -122,6 +124,7 @@ public class RoadMath {
 
         for (Map.Entry<Integer, Set<BlockPos>> entry : RoadFeature.roadBlocksCache.entrySet()) {
             System.out.println(entry.getValue().size());
+            System.out.println(RoadFeature.roadChunksCache.size());
         }
     }
 }

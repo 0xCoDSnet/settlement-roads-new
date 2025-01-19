@@ -8,6 +8,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
@@ -91,11 +92,13 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             BlockPos end = entry.getValue();
             // Generate a unique road identifier for the current road segment
             int roadId = calculateRoadId(start, end);
-            int width = getRandomWidth(roadId, context);
-            // Calculate a determined path
             Random deterministicRandom = Random.create(roadId);
+            int width = getRandomWidth(deterministicRandom, context);
+            boolean natural = getRandomNatural(deterministicRandom);
+            System.out.println(natural);
+            // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Set<BlockPos> path = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end));
+            Set<BlockPos> path = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end), natural, deterministicRandom);
             // Cache the path positions for the current road segment
             roadBlocksCache.put(roadId, path);
         }
@@ -104,29 +107,33 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess, FeatureContext<RoadFeatureConfig> context) {
         // Now use the cached path for block placement
         for (Map.Entry<Integer, Set<BlockPos>> entry : roadBlocksCache.entrySet()) {
+            Random deterministicRandom = Random.create(entry.getKey());
             // Select material for road
-            BlockState material = getRandomMaterial(entry.getKey(), context);
-            int width = getRandomWidth(entry.getKey(), context);
+            BlockState material = getRandomArtificialMaterial(deterministicRandom, context);
+            int width = getRandomWidth(deterministicRandom, context);
+
             for (BlockPos pathPos : entry.getValue()) {
                 ChunkPos pathChunk = new ChunkPos(pathPos);
                 if (currentChunk.equals(pathChunk)) {
-                    BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, pathPos);
+                    BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pathPos);
                     placeOnSurface(structureWorldAccess, placedPos, material, width);
                 }
             }
         }
     }
 
-    private BlockState getRandomMaterial(int roadId, FeatureContext<RoadFeatureConfig> context) {
-        Random deterministicRandom = Random.create(roadId);
+    private BlockState getRandomArtificialMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
         List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
         return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
     }
 
-    private int getRandomWidth(int roadId, FeatureContext<RoadFeatureConfig> context) {
-        Random deterministicRandom = Random.create(roadId);
+    private int getRandomWidth(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
         List<Integer> widthList = context.getConfig().getWidths();
         return widthList.get(deterministicRandom.nextInt(widthList.size()));
+    }
+
+    private boolean getRandomNatural(Random deterministicRandom) {
+        return deterministicRandom.nextBoolean();
     }
 
     private int placedInWaterCounter = 1;
@@ -143,7 +150,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             placedInWaterCounter++;
         } else {
             // If not water, just place the road
-            if (dontPlaceHere.contains(blockStateAtPos)){
+            if (!placeAllowedCheck(blockStateAtPos)) {
                 return;
             }
             setBlockState(structureWorldAccess, placedPos.down(), material);
@@ -153,6 +160,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             setBlockState(structureWorldAccess, placedPos.up(3), Blocks.AIR.getDefaultState());
             placedInWaterCounter = 1;
         }
+    }
+    private boolean placeAllowedCheck (BlockState blockToCheck) {
+        return !dontPlaceHere.contains(blockToCheck)
+                && !blockToCheck.isIn(BlockTags.LEAVES)
+                && !blockToCheck.isIn(BlockTags.UNDERWATER_BONEMEALS);
     }
 
     private int calculateRoadId(BlockPos start, BlockPos end) {
