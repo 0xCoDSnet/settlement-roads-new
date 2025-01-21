@@ -36,7 +36,7 @@ public class StructureLocator {
                 BlockPos structureLocation = serverWorld.locateStructure(structureTag, serverWorld.getSpawnPos(), 100, true);
 
                 if (structureLocation != null) {
-                    LOGGER.info("Structure found at " + structureLocation);
+                    LOGGER.info("Structure found at " + "/tp "+ structureLocation.getX() +" "+ 100 +" "+ structureLocation.getZ());
                     RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation);
                 }
             }

@@ -29,6 +29,7 @@ public class SettlementRoads implements ModInitializer {
 	// Lanterns
 	// Benches
 	// make buoys more consistent
+	// config to place landmarks instead of roads
 
 	@Override
 	public void onInitialize() {
