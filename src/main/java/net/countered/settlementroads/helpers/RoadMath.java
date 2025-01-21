@@ -63,7 +63,7 @@ public class RoadMath {
 
                     for (int fx = (int) Math.floor(adjustedX); fx <= (int) Math.ceil(adjustedX); fx++) {
                         for (int fz = (int) Math.floor(adjustedZ); fz <= (int) Math.ceil(adjustedZ); fz++) {
-                            if (!natural || deterministicRandom.nextDouble() > 0.995) {
+                            if (!natural || deterministicRandom.nextDouble() > 0.99) {
                                 BlockPos placePos = new BlockPos(fx, 0, fz);
                                 path.add(placePos);
                                 RoadFeature.roadChunksCache.add(new ChunkPos(placePos));
