@@ -1,8 +1,11 @@
 {
-  "settlement-roads.midnightconfig.structures":"Structures",
+  "settlement-roads.midnightconfig.category.structures":"Structures",
+  "settlement-roads.midnightconfig.category.roads":"Roads",
   "settlement-roads.midnightconfig.rawNumberOfStructures":"Number of structures to locate",
   "settlement-roads.midnightconfig.rawNumberOfStructures.tooltip": "Select the number of structures to locate. Higher number = longer loading time",
-  "settlement-roads.midnightconfig.structureToLocate": "Structure to Locate",
+  "settlement-roads.midnightconfig.structureToLocate": "Structure to locate",
   "settlement-roads.midnightconfig.structureToLocate.tooltip": "Select or type the structure you want to locate. E.g., minecraft:village or modid:custom_structure. Allows structure tags and keys.",
+  "settlement-roads.midnightconfig.distanceBetweenBuoys": "Distance between buoys",
+  "settlement-roads.midnightconfig.distanceBetweenBuoys.tooltip": "Approximate distance between buoys in blocks",
   "settlement-roads.midnightconfig.title":"Countered's Settlement Roads"
 }

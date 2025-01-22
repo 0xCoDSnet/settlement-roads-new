@@ -3,19 +3,16 @@
   "config": {
     "artificialMaterials": [
       {
-        "Name": "minecraft:diamond_block"
-      },
-      {
-        "Name": "minecraft:emerald_block"
-      },
-      {
-        "Name": "minecraft:gold_block"
-      },
-      {
-        "Name": "minecraft:iron_block"
-      },
-      {
         "Name": "minecraft:dirt_path"
+      },
+      {
+        "Name": "minecraft:mud_bricks"
+      },
+      {
+        "Name": "minecraft:stone_bricks"
+      },
+      {
+        "Name": "minecraft:cobblestone"
       }
     ],
     "naturalMaterials": [
@@ -23,7 +20,13 @@
         "Name": "minecraft:coarse_dirt"
       },
       {
-        "Name": "minecraft:dirt_path"
+        "Name": "minecraft:packed_mud"
+      },
+      {
+        "Name": "minecraft:mossy_cobblestone"
+      },
+      {
+        "Name": "minecraft:gravel"
       }
     ],
     "quality": [

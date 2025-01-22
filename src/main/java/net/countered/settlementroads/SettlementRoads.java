@@ -23,13 +23,14 @@ public class SettlementRoads implements ModInitializer {
 	// Biome specific road changes
 	// Dynamic locating
 	// Location lag reducing
-	// Roads reducing in quality over distance
 	// Mile Markers
 	// Bridges
 	// Lanterns
 	// Benches
-	// make buoys more consistent
+	// Distance signs
+	// Road qualities blocks: mossy variants, rooted dirt,
 	// config to place landmarks instead of roads
+	// clear snow from road?
 
 	@Override
 	public void onInitialize() {

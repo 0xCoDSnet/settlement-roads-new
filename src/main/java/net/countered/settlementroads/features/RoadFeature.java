@@ -2,9 +2,11 @@ package net.countered.settlementroads.features;
 
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
+import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.helpers.RoadAttributes;
 import net.countered.settlementroads.helpers.RoadMath;
 import net.countered.settlementroads.persistence.RoadData;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.RegistryKey;
@@ -31,18 +33,18 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     // Cache road paths per segment roadId
-    public static final Map<Integer, Set<BlockPos>> roadBlocksCache = new HashMap<>();
+    public static final Map<Integer, Map<BlockPos, Integer>> roadBlocksCache = new HashMap<>();
     // Cache road attributes per roadId
     public static final Map<Integer, RoadAttributes> roadAttributesCache = new HashMap<>();
     // Cache chunks where roads will be generated
     public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
 
-    private static final Set<BlockState> dontPlaceHere = new HashSet<>();
+    private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
-        dontPlaceHere.add(Blocks.PACKED_ICE.getDefaultState());
-        dontPlaceHere.add(Blocks.ICE.getDefaultState());
-        dontPlaceHere.add(Blocks.BLUE_ICE.getDefaultState());
-        dontPlaceHere.add(Blocks.TALL_SEAGRASS.getDefaultState());
+        dontPlaceHere.add(Blocks.PACKED_ICE);
+        dontPlaceHere.add(Blocks.ICE);
+        dontPlaceHere.add(Blocks.BLUE_ICE);
+        dontPlaceHere.add(Blocks.TALL_SEAGRASS);
     }
 
     private static int counter = 1;
@@ -76,7 +78,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             runCachingLogic(roadData, context);
         }
         if (roadChunksCache.contains(currentChunk)){
-            runRoadLogic(currentChunk, structureWorldAccess, context);
+            runRoadLogic(currentChunk, structureWorldAccess);
         }
     }
 
@@ -106,78 +108,60 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             System.out.println(natural);
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Set<BlockPos> path = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end), natural, deterministicRandom);
+            Map<BlockPos, Integer> roadPlacePositions = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end), natural, deterministicRandom);
             // Cache the path positions for the current road segment
-            roadBlocksCache.put(roadId, path);
+            roadBlocksCache.put(roadId, roadPlacePositions);
             roadAttributesCache.put(roadId, new RoadAttributes(width, natural, material, deterministicRandom));
         }
     }
 
-    private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess, FeatureContext<RoadFeatureConfig> context) {
+    private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess) {
         // Now use the cached path for block placement
-        for (Map.Entry<Integer, Set<BlockPos>> entry : roadBlocksCache.entrySet()) {
-            int roadId = entry.getKey();
+        for (Map.Entry<Integer, Map<BlockPos, Integer>> roadEntry : roadBlocksCache.entrySet()) {
+            int roadId = roadEntry.getKey();
             RoadAttributes attributes = roadAttributesCache.get(roadId);
-            boolean natural = attributes.natural();
-            int width = attributes.width();
             BlockState material = attributes.material();
+            boolean natural = attributes.natural();
 
-            for (BlockPos pathPos : entry.getValue()) {
-                ChunkPos pathChunk = new ChunkPos(pathPos);
+            for (Map.Entry<BlockPos, Integer> blockPosEntry : roadEntry.getValue().entrySet()) {
+                BlockPos placePos = blockPosEntry.getKey();
+                ChunkPos pathChunk = new ChunkPos(placePos);
                 if (currentChunk.equals(pathChunk)) {
-                    BlockPos placedPos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pathPos);
-                    placeOnSurface(structureWorldAccess, placedPos, material, width);
+                    placeOnSurface(structureWorldAccess, blockPosEntry, material, natural, attributes.deterministicRandom());
                 }
             }
         }
     }
 
-    private BlockState getRandomNaturalMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getNaturalMaterials();
-        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
-    }
-
-    private BlockState getRandomArtificialMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
-        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
-    }
-
-    private int getRandomWidth(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<Integer> widthList = context.getConfig().getWidths();
-        return widthList.get(deterministicRandom.nextInt(widthList.size()));
-    }
-
-    private boolean getRandomNatural(Random deterministicRandom) {
-        return deterministicRandom.nextBoolean();
-    }
-
-    private BlockPos lastBuoyPosition = null;
-
-    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placedPos, BlockState material, int width) {
-        BlockState blockStateAtPos = structureWorldAccess.getBlockState(placedPos.down());
+    private void placeOnSurface(StructureWorldAccess structureWorldAccess, Map.Entry<BlockPos, Integer> placePosWithNumber, BlockState material, Boolean natural, Random deterministicRandom) {
+        double naturalBlockChance = 0.3;
+        BlockPos placePos = placePosWithNumber.getKey();
+        BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
+        BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (lastBuoyPosition == null || placedPos.getManhattanDistance(lastBuoyPosition) >= 20) {
-                setBlockState(structureWorldAccess, placedPos.down(), Blocks.OAK_PLANKS.getDefaultState());
-                setBlockState(structureWorldAccess, placedPos, Blocks.OAK_FENCE.getDefaultState());
-                lastBuoyPosition = placedPos;
+            if (placePosWithNumber.getValue() != null && placePosWithNumber.getValue() % (ModConfig.distanceBetweenBuoys*6) == 0) {
+                setBlockState(structureWorldAccess, surfacePos.down(), Blocks.OAK_PLANKS.getDefaultState());
+                setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_FENCE.getDefaultState());
             }
-        } else {
-            // If not water, just place the road
-            if (!placeAllowedCheck(blockStateAtPos)) {
-                return;
+        }
+        else {
+            if (!natural || deterministicRandom.nextDouble() < naturalBlockChance) {
+                // If not water, just place the road
+                if (!placeAllowedCheck(blockStateAtPos.getBlock())) {
+                    return;
+                }
+                setBlockState(structureWorldAccess, surfacePos.down(), material);
+                setBlockState(structureWorldAccess, surfacePos.up(0), Blocks.AIR.getDefaultState());
+                setBlockState(structureWorldAccess, surfacePos.up(1), Blocks.AIR.getDefaultState());
+                setBlockState(structureWorldAccess, surfacePos.up(2), Blocks.AIR.getDefaultState());
+                setBlockState(structureWorldAccess, surfacePos.up(3), Blocks.AIR.getDefaultState());
             }
-            setBlockState(structureWorldAccess, placedPos.down(), material);
-            setBlockState(structureWorldAccess, placedPos.up(0), Blocks.AIR.getDefaultState());
-            setBlockState(structureWorldAccess, placedPos.up(1), Blocks.AIR.getDefaultState());
-            setBlockState(structureWorldAccess, placedPos.up(2), Blocks.AIR.getDefaultState());
-            setBlockState(structureWorldAccess, placedPos.up(3), Blocks.AIR.getDefaultState());
         }
     }
-    private boolean placeAllowedCheck (BlockState blockToCheck) {
-        return !dontPlaceHere.contains(blockToCheck)
-                && !blockToCheck.isIn(BlockTags.LEAVES)
-                && !blockToCheck.isIn(BlockTags.UNDERWATER_BONEMEALS);
+
+    private boolean placeAllowedCheck (Block blockToCheck) {
+        return !(dontPlaceHere.contains(blockToCheck) || blockToCheck.getDefaultState().isIn(BlockTags.LEAVES) || blockToCheck.getDefaultState().isIn(BlockTags.UNDERWATER_BONEMEALS));
     }
 
     private int calculateRoadId(BlockPos start, BlockPos end) {
@@ -208,6 +192,24 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         LOGGER.info("Locating structure dynamically");
         counter = 1;
         return true;
+    }
+    private BlockState getRandomNaturalMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
+        List<BlockState> materialsList = context.getConfig().getNaturalMaterials();
+        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
+    }
+
+    private BlockState getRandomArtificialMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
+        List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
+        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
+    }
+
+    private int getRandomWidth(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
+        List<Integer> widthList = context.getConfig().getWidths();
+        return widthList.get(deterministicRandom.nextInt(widthList.size()));
+    }
+
+    private boolean getRandomNatural(Random deterministicRandom) {
+        return deterministicRandom.nextBoolean();
     }
 }
 

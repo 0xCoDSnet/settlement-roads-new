@@ -21,9 +21,9 @@ public class RoadMath {
         return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 2);
     }
 
-    public static Set<BlockPos> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps, Boolean natural, Random deterministicRandom) {
-        Set<BlockPos> path = new HashSet<>();
-
+    public static Map<BlockPos, Integer> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps, Boolean natural, Random deterministicRandom) {
+        Map<BlockPos, Integer> pathWithNumbers = new HashMap<>();
+        int placedCount = 0;
         for (int i = 0; i < controlPoints.size() - 1; i++) {
             BlockPos p0 = controlPoints.get(Math.max(0, i - 1));
             BlockPos p1 = controlPoints.get(i);
@@ -63,17 +63,20 @@ public class RoadMath {
 
                     for (int fx = (int) Math.floor(adjustedX); fx <= (int) Math.ceil(adjustedX); fx++) {
                         for (int fz = (int) Math.floor(adjustedZ); fz <= (int) Math.ceil(adjustedZ); fz++) {
-                            if (!natural || deterministicRandom.nextDouble() > 0.99) {
-                                BlockPos placePos = new BlockPos(fx, 0, fz);
-                                path.add(placePos);
-                                RoadFeature.roadChunksCache.add(new ChunkPos(placePos));
-                            }
+                            //if (!natural || deterministicRandom.nextDouble() < naturalBlockChance) {
+                                BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
+                                if (pathWithNumbers.containsKey(sideBlockPos)) {
+                                    continue;
+                                }
+                                pathWithNumbers.put(sideBlockPos, placedCount++);
+                                RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
+                           // }
                         }
                     }
                 }
             }
         }
-        return path;
+        return pathWithNumbers;
     }
 
     public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {
@@ -122,7 +125,7 @@ public class RoadMath {
     // debugging
     public static void estimateMemoryUsage() {
 
-        for (Map.Entry<Integer, Set<BlockPos>> entry : RoadFeature.roadBlocksCache.entrySet()) {
+        for (Map.Entry<Integer, Map<BlockPos, Integer>> entry : RoadFeature.roadBlocksCache.entrySet()) {
             System.out.println(entry.getValue().size());
             System.out.println(RoadFeature.roadChunksCache.size());
         }
