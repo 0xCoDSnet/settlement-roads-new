@@ -122,25 +122,25 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             RoadAttributes attributes = roadAttributesCache.get(roadId);
             BlockState material = attributes.material();
             boolean natural = attributes.natural();
-
+            int width = attributes.width();
             for (Map.Entry<BlockPos, Integer> blockPosEntry : roadEntry.getValue().entrySet()) {
                 BlockPos placePos = blockPosEntry.getKey();
                 ChunkPos pathChunk = new ChunkPos(placePos);
                 if (currentChunk.equals(pathChunk)) {
-                    placeOnSurface(structureWorldAccess, blockPosEntry, material, natural, attributes.deterministicRandom());
+                    placeOnSurface(structureWorldAccess, blockPosEntry, material, natural, width, attributes.deterministicRandom());
                 }
             }
         }
     }
 
-    private void placeOnSurface(StructureWorldAccess structureWorldAccess, Map.Entry<BlockPos, Integer> placePosWithNumber, BlockState material, Boolean natural, Random deterministicRandom) {
+    private void placeOnSurface(StructureWorldAccess structureWorldAccess, Map.Entry<BlockPos, Integer> placePosWithNumber, BlockState material, Boolean natural, int width, Random deterministicRandom) {
         double naturalBlockChance = 0.3;
         BlockPos placePos = placePosWithNumber.getKey();
         BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (placePosWithNumber.getValue() != null && placePosWithNumber.getValue() % (ModConfig.distanceBetweenBuoys*6) == 0) {
+            if (placePosWithNumber.getValue() != null && placePosWithNumber.getValue() % (ModConfig.distanceBetweenBuoys*(width+2))== 0) {
                 setBlockState(structureWorldAccess, surfacePos.down(), Blocks.OAK_PLANKS.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_FENCE.getDefaultState());
             }
@@ -161,7 +161,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     }
 
     private boolean placeAllowedCheck (Block blockToCheck) {
-        return !(dontPlaceHere.contains(blockToCheck) || blockToCheck.getDefaultState().isIn(BlockTags.LEAVES) || blockToCheck.getDefaultState().isIn(BlockTags.UNDERWATER_BONEMEALS));
+        return !(dontPlaceHere.contains(blockToCheck)
+                || blockToCheck.getDefaultState().isIn(BlockTags.LEAVES)
+                || blockToCheck.getDefaultState().isIn(BlockTags.LOGS)
+                || blockToCheck.getDefaultState().isIn(BlockTags.UNDERWATER_BONEMEALS)
+        );
     }
 
     private int calculateRoadId(BlockPos start, BlockPos end) {

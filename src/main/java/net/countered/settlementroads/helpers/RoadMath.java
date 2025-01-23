@@ -63,14 +63,12 @@ public class RoadMath {
 
                     for (int fx = (int) Math.floor(adjustedX); fx <= (int) Math.ceil(adjustedX); fx++) {
                         for (int fz = (int) Math.floor(adjustedZ); fz <= (int) Math.ceil(adjustedZ); fz++) {
-                            //if (!natural || deterministicRandom.nextDouble() < naturalBlockChance) {
-                                BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
-                                if (pathWithNumbers.containsKey(sideBlockPos)) {
-                                    continue;
-                                }
-                                pathWithNumbers.put(sideBlockPos, placedCount++);
-                                RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
-                           // }
+                            BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
+                            if (pathWithNumbers.containsKey(sideBlockPos)) {
+                                continue;
+                            }
+                            pathWithNumbers.put(sideBlockPos, placedCount++);
+                            RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
                         }
                     }
                 }
