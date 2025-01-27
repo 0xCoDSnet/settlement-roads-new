@@ -122,14 +122,41 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             BlockState material = attributes.material();
             boolean natural = attributes.natural();
             int width = attributes.width();
-            for (Map.Entry<BlockPos, Integer> blockPosEntry : roadEntry.getValue().entrySet()) {
+
+            // Use an iterator to manually control the iteration
+            Iterator<Map.Entry<BlockPos, Integer>> iterator = roadEntry.getValue().entrySet().iterator();
+
+            while (iterator.hasNext()) {
+                Map.Entry<BlockPos, Integer> blockPosEntry = iterator.next();
                 BlockPos placePos = blockPosEntry.getKey();
                 ChunkPos pathChunk = new ChunkPos(placePos);
                 if (currentChunk.equals(pathChunk)) {
+                    int skipCount = 0;
+                    // Check if the condition to skip is met
+                    if ((skipCount = placeBridge(blockPosEntry, structureWorldAccess)) >= 0) {
+                        // Skip the next N entries
+                        for (int i = 0; i < skipCount && iterator.hasNext(); i++) {
+                            iterator.next(); // Advance the iterator
+                        }
+                        continue; // Skip the current block and the next N blocks
+                    }
+
+                    // Place the road block if no skip condition is met
                     placeOnSurface(structureWorldAccess, blockPosEntry, material, natural, width, attributes.deterministicRandom());
                 }
             }
         }
+    }
+
+    private int placeBridge(Map.Entry<BlockPos, Integer> blockPosEntry, StructureWorldAccess structureWorldAccess) {
+        BlockPos placePos = blockPosEntry.getKey();
+        BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
+        BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
+        if (blockStateAtPos.isOf(Blocks.WATER)) {
+            setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_PLANKS.getDefaultState());
+            return 0;
+        }
+        return -1;
     }
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, Map.Entry<BlockPos, Integer> placePosWithNumber, BlockState material, Boolean natural, int width, Random deterministicRandom) {
