@@ -74,7 +74,12 @@ public class RoadMath {
                 }
             }
         }
-        return pathWithNumbers;
+        // Sort the map by `placedCount` (values)
+        Map<BlockPos, Integer> sortedPathWithNumbers = pathWithNumbers.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue())
+                .collect(LinkedHashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), LinkedHashMap::putAll);
+
+        return sortedPathWithNumbers;
     }
 
     public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {

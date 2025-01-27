@@ -105,7 +105,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             if (natural){
                 material = getRandomNaturalMaterial(deterministicRandom, context);
             }
-            System.out.println(natural);
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
             Map<BlockPos, Integer> roadPlacePositions = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end), natural, deterministicRandom);
