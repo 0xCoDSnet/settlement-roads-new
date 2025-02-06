@@ -1,13 +1,9 @@
 package net.countered.settlementroads.helpers;
 
 import net.countered.settlementroads.features.RoadFeature;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.world.StructureWorldAccess;
 
 import java.util.*;
 
@@ -18,12 +14,13 @@ public class RoadMath {
         int deltaZ = Math.abs(end.getZ() - start.getZ());
 
         // Calculate the straight-line distance
-        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 2);
+        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 5);
     }
 
-    public static Map<BlockPos, Integer> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps, Boolean natural, Random deterministicRandom) {
-        Map<BlockPos, Integer> pathWithNumbers = new HashMap<>();
-        int placedCount = 0;
+    public static Map<BlockPos, Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps) {
+        Map<BlockPos, Records.RoadSegmentData> roadSegments = new LinkedHashMap<>();
+        Set<BlockPos> middlePositions = new LinkedHashSet<>();  // Track middle blocks globally
+
         for (int i = 0; i < controlPoints.size() - 1; i++) {
             BlockPos p0 = controlPoints.get(Math.max(0, i - 1));
             BlockPos p1 = controlPoints.get(i);
@@ -43,43 +40,50 @@ public class RoadMath {
 
                 int xPos = (int) Math.round(x);
                 int zPos = (int) Math.round(z);
+                BlockPos centerPos = new BlockPos(xPos, 0, zPos);
+                RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
+                // Generate road segment
+                Records.RoadSegmentData segment = generateRoadWidth(centerPos, p0, p2, width, middlePositions);
 
-                // Calculate tangent vector (derivative of the spline at point t)
-                double dx = 0.5 * ((-p0.getX() + p2.getX()) +
-                        2 * (2 * p0.getX() - 5 * p1.getX() + 4 * p2.getX() - p3.getX()) * t +
-                        3 * (-p0.getX() + 3 * p1.getX() - 3 * p2.getX() + p3.getX()) * t * t);
-                double dz = 0.5 * ((-p0.getZ() + p2.getZ()) +
-                        2 * (2 * p0.getZ() - 5 * p1.getZ() + 4 * p2.getZ() - p3.getZ()) * t +
-                        3 * (-p0.getZ() + 3 * p1.getZ() - 3 * p2.getZ() + p3.getZ()) * t * t);
+                // Store middle block position
+                middlePositions.add(segment.middle());
 
-                // Normalize the tangent vector to get the perpendicular vector
-                double length = Math.sqrt(dx * dx + dz * dz);
-                double px = -dz / length;
-                double pz = dx / length;
-
-                for (double w = -width / 2.0; w <= width / 2.0; w += 0.5) {
-                    double adjustedX = xPos + px * w;
-                    double adjustedZ = zPos + pz * w;
-
-                    for (int fx = (int) Math.floor(adjustedX); fx <= (int) Math.ceil(adjustedX); fx++) {
-                        for (int fz = (int) Math.floor(adjustedZ); fz <= (int) Math.ceil(adjustedZ); fz++) {
-                            BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
-                            if (pathWithNumbers.containsKey(sideBlockPos)) {
-                                continue;
-                            }
-                            pathWithNumbers.put(sideBlockPos, placedCount++);
-                            RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
-                        }
-                    }
-                }
+                // Store segment in map (ensuring middle blocks take priority)
+                roadSegments.put(segment.middle(), segment);
             }
         }
-        // Sort the map by `placedCount` (values)
-        Map<BlockPos, Integer> sortedPathWithNumbers = pathWithNumbers.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue())
-                .collect(LinkedHashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), LinkedHashMap::putAll);
+        return roadSegments;
+    }
 
-        return sortedPathWithNumbers;
+    private static Records.RoadSegmentData generateRoadWidth(BlockPos center, BlockPos prev, BlockPos next, int width, Set<BlockPos> middlePositions) {
+        Set<BlockPos> widthPositions = new LinkedHashSet<>();
+
+        // Calculate tangent vector (direction of the road)
+        double dx = next.getX() - prev.getX();
+        double dz = next.getZ() - prev.getZ();
+
+        // Normalize the tangent to get the perpendicular vector
+        double length = Math.sqrt(dx * dx + dz * dz);
+        double px = -dz / length;  // Perpendicular x
+        double pz = dx / length;   // Perpendicular z
+
+        // Add middle block
+        BlockPos middle = new BlockPos(center.getX(), 0, center.getZ());
+
+        // Create road width using perpendicular vector
+        for (double w = -width / 2.0; w <= width / 2.0d; w += 0.1d) {
+
+
+            int fx = (int) Math.round(center.getX() + px * w);
+            int fz = (int) Math.round(center.getZ() + pz * w);
+            BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
+            // Only add width block if it's NOT already a middle block
+            if (!middlePositions.contains(sideBlockPos)) {
+                widthPositions.add(sideBlockPos);
+                RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
+            }
+        }
+        return new Records.RoadSegmentData(middle, widthPositions);
     }
 
     public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {
@@ -127,10 +131,13 @@ public class RoadMath {
 
     // debugging
     public static void estimateMemoryUsage() {
-
-        for (Map.Entry<Integer, Map<BlockPos, Integer>> entry : RoadFeature.roadBlocksCache.entrySet()) {
+        /*
+        for (Map.Entry<Integer, Set<BlockPos>> entry : RoadFeature.roadBlocksCache.entrySet()) {
             System.out.println(entry.getValue().size());
-            System.out.println(RoadFeature.roadChunksCache.size());
         }
+        */
+        System.out.println(RoadFeature.roadChunksCache.size());
+        System.out.println(RoadFeature.roadBlocksCache.size());
+        System.out.println(RoadFeature.roadSegmentsCache.size());
     }
 }

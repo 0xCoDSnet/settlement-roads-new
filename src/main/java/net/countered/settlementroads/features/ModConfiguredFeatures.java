@@ -1,15 +1,9 @@
 package net.countered.settlementroads.features;
 
 import net.countered.settlementroads.SettlementRoads;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registerable;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.FeatureConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +23,7 @@ public class ModConfiguredFeatures {
                                         Blocks.STONE_BRICKS.getDefaultState(), Blocks.COBBLESTONE.getDefaultState()),                                     // artificial
                                 List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState(),
                                         Blocks.MOSSY_COBBLESTONE.getDefaultState(), Blocks.GRAVEL.getDefaultState()),                                     // natural
-                                List.of(2,3,4),                                                                                                           // width
+                                List.of(3,4,5),                                                                                                           // width
                                 List.of(1,2,3,4,5,6,7,8,9)                                                                                                // quality
                         )
                 )

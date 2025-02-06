@@ -31,6 +31,7 @@ public class SettlementRoads implements ModInitializer {
 	// Road qualities blocks: mossy variants, rooted dirt,
 	// config to place landmarks instead of roads
 	// clear snow from road?
+	// improve width vector accuracy
 
 	@Override
 	public void onInitialize() {
