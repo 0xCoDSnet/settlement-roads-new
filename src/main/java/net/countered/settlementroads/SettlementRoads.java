@@ -33,7 +33,7 @@ public class SettlementRoads implements ModInitializer {
 	// config to place landmarks instead of roads
 	// clear snow from road?
 	// Make artificial roads more artificial
-
+	// Remove placed blocks from caches
 
 	@Override
 	public void onInitialize() {

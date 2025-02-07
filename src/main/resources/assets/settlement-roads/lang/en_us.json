@@ -7,5 +7,9 @@
   "settlement-roads.midnightconfig.structureToLocate.tooltip": "Select or type the structure you want to locate. E.g., minecraft:village or modid:custom_structure. Allows structure tags and keys.",
   "settlement-roads.midnightconfig.distanceBetweenBuoys": "Distance between buoys",
   "settlement-roads.midnightconfig.distanceBetweenBuoys.tooltip": "Approximate distance between buoys in blocks",
+  "settlement-roads.midnightconfig.allowArtificial": "Allow artificial roads",
+  "settlement-roads.midnightconfig.allowArtificial.tooltip": "Whether artificial roads are allowed to generate",
+  "settlement-roads.midnightconfig.allowNatural": "Allow natural roads",
+  "settlement-roads.midnightconfig.allowNatural.tooltip": "Whether natural roads are allowed to generate",
   "settlement-roads.midnightconfig.title":"Countered's Settlement Roads"
 }

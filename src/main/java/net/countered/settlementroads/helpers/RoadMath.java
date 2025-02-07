@@ -164,11 +164,11 @@ public class RoadMath {
 
     // debugging
     public static void estimateMemoryUsage() {
-        /*
-        for (Map.Entry<Integer, Set<BlockPos>> entry : RoadFeature.roadBlocksCache.entrySet()) {
+
+        for (Map.Entry<Integer, Map<BlockPos, Records.RoadSegmentData>> entry : RoadFeature.roadSegmentsCache.entrySet()) {
             System.out.println(entry.getValue().size());
         }
-        */
+
         System.out.println(RoadFeature.roadChunksCache.size());
         System.out.println(RoadFeature.roadSegmentsCache.size());
         System.out.println(RoadFeature.roadAttributesCache.size());

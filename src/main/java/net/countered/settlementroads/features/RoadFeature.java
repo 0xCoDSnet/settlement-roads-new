@@ -62,7 +62,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         RoadData roadData = RoadData.getOrCreateRoadData(serverWorld);
-        //RoadMath.estimateMemoryUsage();
+        RoadMath.estimateMemoryUsage();
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
@@ -100,15 +100,34 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             int roadId = calculateRoadId(start, end);
             Random deterministicRandom = Random.create(roadId);
             int width = getRandomWidth(deterministicRandom, context);
-            boolean natural = getRandomNatural(deterministicRandom);
-            BlockState material = natural ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
+
+            int type = allowedRoadTypes(deterministicRandom);
+            if (type == -1) {
+                continue;
+            }
+            BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
 
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
             Map<BlockPos, Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
-            roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, natural, material, deterministicRandom));
+            roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
             roadSegmentsCache.put(roadId, roadPath);
+        }
+    }
+
+    private int allowedRoadTypes(Random deterministicRandom) {
+        if (ModConfig.allowArtificial && ModConfig.allowNatural){
+            return getRandomRoadType(deterministicRandom);
+        }
+        else if (ModConfig.allowArtificial){
+            return 0;
+        }
+        else if (ModConfig.allowNatural) {
+            return 1;
+        }
+        else {
+            return -1;
         }
     }
 
@@ -118,7 +137,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             int roadId = roadEntry.getKey();
             Records.RoadAttributesData attributes = roadAttributesCache.get(roadId);
             BlockState material = attributes.material();
-            boolean natural = attributes.natural();
+            int natural = attributes.natural();
             Random deterministicRandom = attributes.deterministicRandom();
             // Middle path placement with buoy logic
             int segmentIndex = 0;
@@ -148,7 +167,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     }
 
 
-    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, Boolean natural, Random deterministicRandom, int centerBlockCount) {
+    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, int natural, Random deterministicRandom, int centerBlockCount) {
         double naturalBlockChance = 0.3;
 
         BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
@@ -161,7 +180,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             }
         }
         else {
-            if (!natural || deterministicRandom.nextDouble() < naturalBlockChance) {
+            if (natural == 0 || deterministicRandom.nextDouble() < naturalBlockChance) {
                 // If not water, just place the road
                 if (!placeAllowedCheck(blockStateAtPos.getBlock())) {
                     return;
@@ -238,8 +257,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         return widthList.get(deterministicRandom.nextInt(widthList.size()));
     }
 
-    private boolean getRandomNatural(Random deterministicRandom) {
-        return deterministicRandom.nextBoolean();
+    private int getRandomRoadType(Random deterministicRandom) {
+        return deterministicRandom.nextBetween(0, 1);
     }
 }
 

@@ -8,7 +8,7 @@ import java.util.Set;
 
 public class Records {
 
-    public record RoadAttributesData(int width, boolean natural, BlockState material, Random deterministicRandom) {
+    public record RoadAttributesData(int width, int natural, BlockState material, Random deterministicRandom) {
     }
 
     public record RoadSegmentData (BlockPos middle, Set<BlockPos> widthBlocks){
