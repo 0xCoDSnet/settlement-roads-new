@@ -33,7 +33,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     // Cache road paths per segment roadId
-    public static final Map<Integer, Map<BlockPos, Records.RoadSegmentData>> roadSegmentsCache = new HashMap<>();
+    public static final Map<Integer, Set<Records.RoadSegmentData>> roadSegmentsCache = new LinkedHashMap<>();
     // Cache road attributes per roadId
     public static final Map<Integer, Records.RoadAttributesData> roadAttributesCache = new HashMap<>();
     // Cache chunks where roads will be generated
@@ -109,7 +109,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Map<BlockPos, Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
+            Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
             roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
             roadSegmentsCache.put(roadId, roadPath);
@@ -133,7 +133,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess) {
         // Now use the cached path for block placement
-        for (Map.Entry<Integer, Map<BlockPos, Records.RoadSegmentData>> roadEntry : roadSegmentsCache.entrySet()) {
+        for (Map.Entry<Integer, Set<Records.RoadSegmentData>> roadEntry : roadSegmentsCache.entrySet()) {
             int roadId = roadEntry.getKey();
             Records.RoadAttributesData attributes = roadAttributesCache.get(roadId);
             BlockState material = attributes.material();
@@ -141,25 +141,21 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             Random deterministicRandom = attributes.deterministicRandom();
             // Middle path placement with buoy logic
             int segmentIndex = 0;
-            for (Map.Entry<BlockPos, Records.RoadSegmentData> segmentEntry : roadEntry.getValue().entrySet()) {
-                Records.RoadSegmentData segment = segmentEntry.getValue();
-                BlockPos middleBlock = segment.middle();
-                ChunkPos middleChunk = new ChunkPos(middleBlock);
+            for (Records.RoadSegmentData segmentEntry : roadEntry.getValue()) {
+                BlockPos middleBlockPos = segmentEntry.middle();
+                ChunkPos middleChunk = new ChunkPos(middleBlockPos);
 
                 // Place width blocks
-                for (BlockPos widthBlock : segment.widthBlocks()) {
-                    ChunkPos widthChunk = new ChunkPos(widthBlock);
+                for (BlockPos widthBlockPos : segmentEntry.widthBlocks()) {
+                    ChunkPos widthChunk = new ChunkPos(widthBlockPos);
                     if (!currentChunk.equals(widthChunk)) {
                         continue;
                     }
-                    if (roadEntry.getValue().containsKey(widthBlock)) {
-                        continue;
-                    }
-                    placeOnSurface(structureWorldAccess, widthBlock, material, natural, deterministicRandom, -1);
+                    placeOnSurface(structureWorldAccess, widthBlockPos, material, natural, deterministicRandom, -1);
                 }
                 // Place middle block
                 if (currentChunk.equals(middleChunk)) {
-                    placeOnSurface(structureWorldAccess, middleBlock, material, natural, deterministicRandom, segmentIndex);
+                    placeOnSurface(structureWorldAccess, middleBlockPos, material, natural, deterministicRandom, segmentIndex);
                 }
                 segmentIndex++;
             }
@@ -174,7 +170,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (centerBlockCount % (ModConfig.distanceBetweenBuoys+6) == 0) {
+            if (centerBlockCount % (ModConfig.distanceBetweenBuoys) == 0) {
                 setBlockState(structureWorldAccess, surfacePos.down(), Blocks.OAK_PLANKS.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_FENCE.getDefaultState());
             }

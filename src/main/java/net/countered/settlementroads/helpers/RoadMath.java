@@ -9,8 +9,8 @@ import java.util.*;
 
 public class RoadMath {
 
-    public static Map<BlockPos, Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width) {
-        Map<BlockPos, Records.RoadSegmentData> roadSegments = new LinkedHashMap<>();
+    public static Set<Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width) {
+        Set<Records.RoadSegmentData> roadSegments = new LinkedHashSet<>();
         Set<BlockPos> middlePositions = new LinkedHashSet<>();  // Track middle blocks globally
 
         BlockPos prevPos = controlPoints.getFirst(); // Start with the first control point
@@ -36,7 +36,7 @@ public class RoadMath {
 
                             // Generate road width
                             Records.RoadSegmentData segment = generateRoadWidth(centerPos, lastSplinePos, nextSplinePos, width, middlePositions);
-                            roadSegments.put(segment.middle(), segment);
+                            roadSegments.add(segment);
                         }
                     }
                 }
@@ -165,8 +165,9 @@ public class RoadMath {
     // debugging
     public static void estimateMemoryUsage() {
 
-        for (Map.Entry<Integer, Map<BlockPos, Records.RoadSegmentData>> entry : RoadFeature.roadSegmentsCache.entrySet()) {
-            System.out.println(entry.getValue().size());
+        for (Map.Entry<Integer, Set<Records.RoadSegmentData>> entry : RoadFeature.roadSegmentsCache.entrySet()) {
+
+            System.out.println("entry " + entry.getValue().size());
         }
 
         System.out.println(RoadFeature.roadChunksCache.size());
