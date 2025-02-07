@@ -29,7 +29,7 @@ public class ModEventHandler {
         });
         ServerWorldEvents.UNLOAD.register((minecraftServer, serverWorld) -> {
             LOGGER.info("Clearing road cache...");
-            RoadFeature.roadBlocksCache.clear();
+            RoadFeature.roadSegmentsCache.clear();
             RoadFeature.roadAttributesCache.clear();
             RoadFeature.roadChunksCache.clear();
         });

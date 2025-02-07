@@ -8,14 +8,6 @@ import net.minecraft.util.math.random.Random;
 import java.util.*;
 
 public class RoadMath {
-    // Dynamically calculate steps based on the road length
-    public static int calculateDynamicSteps(BlockPos start, BlockPos end) {
-        int deltaX = Math.abs(end.getX() - start.getX());
-        int deltaZ = Math.abs(end.getZ() - start.getZ());
-
-        // Calculate the straight-line distance
-        return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 5);
-    }
 
     public static Map<BlockPos, Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width) {
         Map<BlockPos, Records.RoadSegmentData> roadSegments = new LinkedHashMap<>();
@@ -31,7 +23,7 @@ public class RoadMath {
 
             BlockPos lastSplinePos = null;
 
-            for (double t = 0; t <= 1.0; t += 0.01) {  // Use fine-grained t increments
+            for (double t = 0; t <= 1.0; t += 0.00001) {  // Use fine-grained t increments
                 BlockPos nextSplinePos = calculateSplinePosition(p0, p1, p2, p3, t);
 
                 if (lastSplinePos != null) {
@@ -43,7 +35,7 @@ public class RoadMath {
                             RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
 
                             // Generate road width
-                            Records.RoadSegmentData segment = generateRoadWidth(centerPos, prevPos, nextSplinePos, width, middlePositions);
+                            Records.RoadSegmentData segment = generateRoadWidth(centerPos, lastSplinePos, nextSplinePos, width, middlePositions);
                             roadSegments.put(segment.middle(), segment);
                         }
                     }
@@ -58,24 +50,28 @@ public class RoadMath {
         Set<BlockPos> widthPositions = new LinkedHashSet<>();
 
         // Calculate tangent vector (direction of the road)
-        double dx = next.getX() - prev.getX();
-        double dz = next.getZ() - prev.getZ();
+        int dx = next.getX() - prev.getX();
+        int dz = next.getZ() - prev.getZ();
 
         // Normalize the tangent to get the perpendicular vector
         double length = Math.sqrt(dx * dx + dz * dz);
-        double px = -dz / length;  // Perpendicular x
-        double pz = dx / length;   // Perpendicular z
+
+        double tangentX = dx / length;  // Tangent x
+        double tangentZ = dz / length;  // Tangent z
+
+        // Perpendicular vector (normal to the tangent)
+        double px = -tangentZ;  // Perpendicular x
+        double pz = tangentX;   // Perpendicular z
 
         // Add middle block
         BlockPos middle = new BlockPos(center.getX(), 0, center.getZ());
 
         // Create road width using perpendicular vector
-        for (double w = -width / 2.0; w <= width / 2.0d; w += 0.1d) {
+        for (double w = -width / 2.0; w <= width / 2.0; w += 0.001) {
 
-
-            int fx = (int) Math.round(center.getX() + px * w);
-            int fz = (int) Math.round(center.getZ() + pz * w);
-            BlockPos sideBlockPos = new BlockPos(fx, 0, fz);
+            double fx = center.getX() + px * w;
+            double fz = center.getZ() + pz * w;
+            BlockPos sideBlockPos = new BlockPos((int) Math.round(fx), 0, (int)Math.round(fz));
             // Only add width block if it's NOT already a middle block
             if (!middlePositions.contains(sideBlockPos)) {
                 widthPositions.add(sideBlockPos);
@@ -174,7 +170,7 @@ public class RoadMath {
         }
         */
         System.out.println(RoadFeature.roadChunksCache.size());
-        System.out.println(RoadFeature.roadBlocksCache.size());
         System.out.println(RoadFeature.roadSegmentsCache.size());
+        System.out.println(RoadFeature.roadAttributesCache.size());
     }
 }

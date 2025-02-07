@@ -33,7 +33,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     // Cache road paths per segment roadId
-    public static final Map<Integer, Set<BlockPos>> roadBlocksCache = new HashMap<>();
     public static final Map<Integer, Map<BlockPos, Records.RoadSegmentData>> roadSegmentsCache = new HashMap<>();
     // Cache road attributes per roadId
     public static final Map<Integer, Records.RoadAttributesData> roadAttributesCache = new HashMap<>();
@@ -108,9 +107,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
             Map<BlockPos, Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
-            //roadBlocksCache.put(roadId, roadPath.middleBlocks());
-            roadSegmentsCache.put(roadId, roadPath); // Store width separately
             roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, natural, material, deterministicRandom));
+            roadSegmentsCache.put(roadId, roadPath);
         }
     }
 
@@ -138,7 +136,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     if (roadEntry.getValue().containsKey(widthBlock)) {
                         continue;
                     }
-                    placeOnSurface(structureWorldAccess, widthBlock, Blocks.DIAMOND_BLOCK.getDefaultState(), natural, deterministicRandom, -1);
+                    placeOnSurface(structureWorldAccess, widthBlock, material, natural, deterministicRandom, -1);
                 }
                 // Place middle block
                 if (currentChunk.equals(middleChunk)) {
@@ -157,7 +155,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (centerBlockCount % (ModConfig.distanceBetweenBuoys+4) == 0) {
+            if (centerBlockCount % (ModConfig.distanceBetweenBuoys+6) == 0) {
                 setBlockState(structureWorldAccess, surfacePos.down(), Blocks.OAK_PLANKS.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_FENCE.getDefaultState());
             }

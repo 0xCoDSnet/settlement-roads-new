@@ -25,13 +25,15 @@ public class SettlementRoads implements ModInitializer {
 	// Location lag reducing
 	// Mile Markers
 	// Bridges
+	// Tunnels
 	// Lanterns
 	// Benches
 	// Distance signs
 	// Road qualities blocks: mossy variants, rooted dirt,
 	// config to place landmarks instead of roads
 	// clear snow from road?
-	// fix width vector lengths
+	// Make artificial roads more artificial
+
 
 	@Override
 	public void onInitialize() {

@@ -7,6 +7,7 @@ import net.minecraft.util.math.random.Random;
 import java.util.Set;
 
 public class Records {
+
     public record RoadAttributesData(int width, boolean natural, BlockState material, Random deterministicRandom) {
     }
 
