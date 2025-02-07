@@ -138,21 +138,26 @@ public class RoadMath {
 
         controlPoints.add(adjustedStart);
 
-        double totalDistance = adjustedStart.getManhattanDistance(adjustedEnd);
-        int step = 150;
-        int deviationBound = 40;
-        int count = (int) Math.ceil(totalDistance / step);
+        int step = 100;
+        int deviationBound = 50;
 
-        for (int i = 1; i < count; i++) {
-            double t = i / (double) count;
-            int x = (int) (adjustedStart.getX() * (1 - t) + adjustedEnd.getX() * t);
-            int z = (int) (adjustedStart.getZ() * (1 - t) + adjustedEnd.getZ() * t);
+        // Compute normalized direction vector
+        double dirX = dx / distance;
+        double dirZ = dz / distance;
 
-            int orthogonalX = random.nextBetween(20, deviationBound) * (random.nextBoolean() ? 1 : -1);
-            int orthogonalZ = random.nextBetween(20, deviationBound) * (random.nextBoolean() ? 1 : -1);
+        // Compute perpendicular vector (rotate by 90 degrees)
+        double perpX = -dirZ;
+        double perpZ = dirX;
 
-            x += orthogonalX;
-            z += orthogonalZ;
+        // Generate control points at fixed step distances
+        for (double d = step; d < distance - step; d += step) {
+            int x = (int) (adjustedStart.getX() + dirX * d);
+            int z = (int) (adjustedStart.getZ() + dirZ * d);
+
+            // Apply perpendicular offset randomly
+            double deviation = random.nextBetween(20, deviationBound) * (random.nextBoolean() ? 1 : -1);
+            x += (int) Math.round(perpX * deviation);
+            z += (int) Math.round(perpZ * deviation);
 
             controlPoints.add(new BlockPos(x, 0, z));
         }
@@ -160,6 +165,7 @@ public class RoadMath {
         controlPoints.add(adjustedEnd);
         return controlPoints;
     }
+
 
 
     // debugging

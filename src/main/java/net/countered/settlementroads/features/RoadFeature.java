@@ -62,7 +62,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         RoadData roadData = RoadData.getOrCreateRoadData(serverWorld);
-        RoadMath.estimateMemoryUsage();
+        //RoadMath.estimateMemoryUsage();
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
@@ -170,7 +170,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
-            if (centerBlockCount % (ModConfig.distanceBetweenBuoys) == 0) {
+            if (centerBlockCount % (ModConfig.distanceBetweenBuoys + 6) == 0) {
                 setBlockState(structureWorldAccess, surfacePos.down(), Blocks.OAK_PLANKS.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_FENCE.getDefaultState());
             }
