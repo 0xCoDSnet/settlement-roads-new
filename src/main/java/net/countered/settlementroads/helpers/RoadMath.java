@@ -17,9 +17,11 @@ public class RoadMath {
         return (int) Math.round(Math.sqrt(deltaX * deltaX + deltaZ * deltaZ) * 5);
     }
 
-    public static Map<BlockPos, Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width, int steps) {
+    public static Map<BlockPos, Records.RoadSegmentData> calculateSplinePath(List<BlockPos> controlPoints, int width) {
         Map<BlockPos, Records.RoadSegmentData> roadSegments = new LinkedHashMap<>();
         Set<BlockPos> middlePositions = new LinkedHashSet<>();  // Track middle blocks globally
+
+        BlockPos prevPos = controlPoints.getFirst(); // Start with the first control point
 
         for (int i = 0; i < controlPoints.size() - 1; i++) {
             BlockPos p0 = controlPoints.get(Math.max(0, i - 1));
@@ -27,29 +29,26 @@ public class RoadMath {
             BlockPos p2 = controlPoints.get(i + 1);
             BlockPos p3 = controlPoints.get(Math.min(controlPoints.size() - 1, i + 2));
 
-            for (int j = 0; j < steps; j++) {
-                double t = j / (double) steps;
-                double x = 0.5 * ((2 * p1.getX()) +
-                        (-p0.getX() + p2.getX()) * t +
-                        (2 * p0.getX() - 5 * p1.getX() + 4 * p2.getX() - p3.getX()) * t * t +
-                        (-p0.getX() + 3 * p1.getX() - 3 * p2.getX() + p3.getX()) * t * t * t);
-                double z = 0.5 * ((2 * p1.getZ()) +
-                        (-p0.getZ() + p2.getZ()) * t +
-                        (2 * p0.getZ() - 5 * p1.getZ() + 4 * p2.getZ() - p3.getZ()) * t * t +
-                        (-p0.getZ() + 3 * p1.getZ() - 3 * p2.getZ() + p3.getZ()) * t * t * t);
+            BlockPos lastSplinePos = null;
 
-                int xPos = (int) Math.round(x);
-                int zPos = (int) Math.round(z);
-                BlockPos centerPos = new BlockPos(xPos, 0, zPos);
-                RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
-                // Generate road segment
-                Records.RoadSegmentData segment = generateRoadWidth(centerPos, p0, p2, width, middlePositions);
+            for (double t = 0; t <= 1.0; t += 0.01) {  // Use fine-grained t increments
+                BlockPos nextSplinePos = calculateSplinePosition(p0, p1, p2, p3, t);
 
-                // Store middle block position
-                middlePositions.add(segment.middle());
+                if (lastSplinePos != null) {
+                    // Use Bresenham to ensure continuous placement
+                    List<BlockPos> linePositions = getStraightLine(lastSplinePos, nextSplinePos);
+                    for (BlockPos centerPos : linePositions) {
+                        if (!middlePositions.contains(centerPos)) {
+                            middlePositions.add(centerPos);
+                            RoadFeature.roadChunksCache.add(new ChunkPos(centerPos));
 
-                // Store segment in map (ensuring middle blocks take priority)
-                roadSegments.put(segment.middle(), segment);
+                            // Generate road width
+                            Records.RoadSegmentData segment = generateRoadWidth(centerPos, prevPos, nextSplinePos, width, middlePositions);
+                            roadSegments.put(segment.middle(), segment);
+                        }
+                    }
+                }
+                lastSplinePos = nextSplinePos;
             }
         }
         return roadSegments;
@@ -84,6 +83,44 @@ public class RoadMath {
             }
         }
         return new Records.RoadSegmentData(middle, widthPositions);
+    }
+
+    public static BlockPos calculateSplinePosition(BlockPos p0, BlockPos p1, BlockPos p2, BlockPos p3, double t) {
+        double x = 0.5 * ((2 * p1.getX()) +
+                (-p0.getX() + p2.getX()) * t +
+                (2 * p0.getX() - 5 * p1.getX() + 4 * p2.getX() - p3.getX()) * t * t +
+                (-p0.getX() + 3 * p1.getX() - 3 * p2.getX() + p3.getX()) * t * t * t);
+
+        double z = 0.5 * ((2 * p1.getZ()) +
+                (-p0.getZ() + p2.getZ()) * t +
+                (2 * p0.getZ() - 5 * p1.getZ() + 4 * p2.getZ() - p3.getZ()) * t * t +
+                (-p0.getZ() + 3 * p1.getZ() - 3 * p2.getZ() + p3.getZ()) * t * t * t);
+
+        return new BlockPos((int) Math.round(x), 0, (int) Math.round(z));
+    }
+
+    public static List<BlockPos> getStraightLine(BlockPos start, BlockPos end) {
+        List<BlockPos> lineBlocks = new ArrayList<>();
+
+        int x1 = start.getX(), z1 = start.getZ();
+        int x2 = end.getX(), z2 = end.getZ();
+
+        int dx = Math.abs(x2 - x1);
+        int dz = Math.abs(z2 - z1);
+        int sx = x1 < x2 ? 1 : -1;
+        int sz = z1 < z2 ? 1 : -1;
+        int err = dx - dz;
+
+        while (true) {
+            lineBlocks.add(new BlockPos(x1, 0, z1)); // Y is set to 0, adjust as needed
+
+            if (x1 == x2 && z1 == z2) break;
+            int e2 = 2 * err;
+            if (e2 > -dz) { err -= dz; x1 += sx; }
+            if (e2 < dx) { err += dx; z1 += sz; }
+        }
+
+        return lineBlocks;
     }
 
     public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {

@@ -106,7 +106,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Map<BlockPos, Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width, RoadMath.calculateDynamicSteps(start, end));
+            Map<BlockPos, Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
             //roadBlocksCache.put(roadId, roadPath.middleBlocks());
             roadSegmentsCache.put(roadId, roadPath); // Store width separately
@@ -127,23 +127,28 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             for (Map.Entry<BlockPos, Records.RoadSegmentData> segmentEntry : roadEntry.getValue().entrySet()) {
                 Records.RoadSegmentData segment = segmentEntry.getValue();
                 BlockPos middleBlock = segment.middle();
-                ChunkPos pathChunk = new ChunkPos(middleBlock);
+                ChunkPos middleChunk = new ChunkPos(middleBlock);
 
-                if (currentChunk.equals(pathChunk)) {
-                    // Place width blocks
-                    for (BlockPos widthBlock : segment.widthBlocks()) {
-                        if (roadEntry.getValue().containsKey(widthBlock)) {
-                            continue;
-                        }
-                        placeOnSurface(structureWorldAccess, widthBlock, Blocks.DIAMOND_BLOCK.getDefaultState(), natural, deterministicRandom, -1);
+                // Place width blocks
+                for (BlockPos widthBlock : segment.widthBlocks()) {
+                    ChunkPos widthChunk = new ChunkPos(widthBlock);
+                    if (!currentChunk.equals(widthChunk)) {
+                        continue;
                     }
-                    // Place middle block
+                    if (roadEntry.getValue().containsKey(widthBlock)) {
+                        continue;
+                    }
+                    placeOnSurface(structureWorldAccess, widthBlock, Blocks.DIAMOND_BLOCK.getDefaultState(), natural, deterministicRandom, -1);
+                }
+                // Place middle block
+                if (currentChunk.equals(middleChunk)) {
                     placeOnSurface(structureWorldAccess, middleBlock, material, natural, deterministicRandom, segmentIndex);
                 }
                 segmentIndex++;
             }
         }
     }
+
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, Boolean natural, Random deterministicRandom, int centerBlockCount) {
         double naturalBlockChance = 0.3;
