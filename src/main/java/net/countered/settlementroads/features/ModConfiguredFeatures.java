@@ -19,10 +19,8 @@ public class ModConfiguredFeatures {
         context.register(RoadFeature.ROAD_FEATURE_KEY,
                 new ConfiguredFeature<>(RoadFeature.ROAD_FEATURE,
                         new RoadFeatureConfig(
-                                List.of(Blocks.DIRT_PATH.getDefaultState(), Blocks.MUD_BRICKS.getDefaultState(),
-                                        Blocks.STONE_BRICKS.getDefaultState(), Blocks.COBBLESTONE.getDefaultState()),                                     // artificial
-                                List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState(),
-                                        Blocks.MOSSY_COBBLESTONE.getDefaultState(), Blocks.GRAVEL.getDefaultState()),                                     // natural
+                                List.of(Blocks.DIRT_PATH.getDefaultState(), Blocks.MUD_BRICKS.getDefaultState()),                                     // artificial
+                                List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState()),                                     // natural
                                 List.of(3,4,5),                                                                                                           // width
                                 List.of(1,2,3,4,5,6,7,8,9)                                                                                                // quality
                         )

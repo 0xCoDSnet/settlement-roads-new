@@ -21,7 +21,6 @@ public class SettlementRoads implements ModInitializer {
 
 	// TODO
 	// Biome specific road changes
-	// Dynamic locating
 	// Location lag reducing
 	// Mile Markers
 	// Bridges
@@ -34,6 +33,7 @@ public class SettlementRoads implements ModInitializer {
 	// clear snow from road?
 	// Make artificial roads more artificial
 	// Remove placed blocks from caches
+	// Possibly incorrect roads / broken roads when recaching on world reload?
 
 	@Override
 	public void onInitialize() {

@@ -1,8 +1,10 @@
 {
   "settlement-roads.midnightconfig.category.structures":"Structures",
   "settlement-roads.midnightconfig.category.roads":"Roads",
-  "settlement-roads.midnightconfig.rawNumberOfStructures":"Number of structures to locate",
-  "settlement-roads.midnightconfig.rawNumberOfStructures.tooltip": "Select the number of structures to locate. Higher number = longer loading time",
+  "settlement-roads.midnightconfig.initialLocatingCount":"Number of structures to locate",
+  "settlement-roads.midnightconfig.initialLocatingCount.tooltip": "Select the number of structures to locate. Higher number = longer loading time",
+  "settlement-roads.midnightconfig.maxLocatingCount":"Maximum number of structures to locate",
+  "settlement-roads.midnightconfig.maxLocatingCount.tooltip": "Select the maximum number of structures to locate dynamically. Higher number = more memory usage",
   "settlement-roads.midnightconfig.structureToLocate": "Structure to locate",
   "settlement-roads.midnightconfig.structureToLocate.tooltip": "Select or type the structure you want to locate. E.g., minecraft:village or modid:custom_structure. Allows structure tags and keys.",
   "settlement-roads.midnightconfig.distanceBetweenBuoys": "Distance between buoys",

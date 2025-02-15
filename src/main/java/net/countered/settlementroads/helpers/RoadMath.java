@@ -47,7 +47,7 @@ public class RoadMath {
     }
 
     private static Records.RoadSegmentData generateRoadWidth(BlockPos center, BlockPos prev, BlockPos next, int width, Set<BlockPos> middlePositions) {
-        Set<BlockPos> widthPositions = new LinkedHashSet<>();
+        Set<BlockPos> widthPositions = new HashSet<>();
 
         // Calculate tangent vector (direction of the road)
         int dx = next.getX() - prev.getX();
@@ -64,18 +64,18 @@ public class RoadMath {
         double pz = tangentX;   // Perpendicular z
 
         // Add middle block
-        BlockPos middle = new BlockPos(center.getX(), 0, center.getZ());
+        BlockPos middle = new BlockPos(center.getX(), center.getY(), center.getZ());
 
         // Create road width using perpendicular vector
         for (double w = -width / 2.0; w <= width / 2.0; w += 0.001) {
 
             double fx = center.getX() + px * w;
             double fz = center.getZ() + pz * w;
-            BlockPos sideBlockPos = new BlockPos((int) Math.round(fx), 0, (int)Math.round(fz));
+            BlockPos widthBlockPos = new BlockPos((int) Math.round(fx), center.getY(), (int)Math.round(fz));
             // Only add width block if it's NOT already a middle block
-            if (!middlePositions.contains(sideBlockPos)) {
-                widthPositions.add(sideBlockPos);
-                RoadFeature.roadChunksCache.add(new ChunkPos(sideBlockPos));
+            if (!middlePositions.contains(widthBlockPos)) {
+                widthPositions.add(widthBlockPos);
+                RoadFeature.roadChunksCache.add(new ChunkPos(widthBlockPos));
             }
         }
         return new Records.RoadSegmentData(middle, widthPositions);

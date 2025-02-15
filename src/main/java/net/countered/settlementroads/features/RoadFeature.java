@@ -1,10 +1,12 @@
 package net.countered.settlementroads.features;
 
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.RoadMath;
+import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -33,11 +35,13 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     // Cache road paths per segment roadId
-    public static final Map<Integer, Set<Records.RoadSegmentData>> roadSegmentsCache = new LinkedHashMap<>();
+    public static Map<Integer, Set<Records.RoadSegmentData>> roadSegmentsCache = new LinkedHashMap<>();
     // Cache road attributes per roadId
-    public static final Map<Integer, Records.RoadAttributesData> roadAttributesCache = new HashMap<>();
+    public static Map<Integer, Records.RoadAttributesData> roadAttributesCache = new HashMap<>();
     // Cache chunks where roads will be generated
     public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
+    // Villages that need to be added to cache
+    public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -47,7 +51,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         dontPlaceHere.add(Blocks.TALL_SEAGRASS);
     }
 
-    private static int counter = 1;
+    private static int chunksForLocatingCounter = 1;
 
     public static final RegistryKey<PlacedFeature> ROAD_FEATURE_PLACED_KEY =
             RegistryKey.of(RegistryKeys.PLACED_FEATURE, Identifier.of(SettlementRoads.MOD_ID, "road_feature_placed"));
@@ -63,11 +67,30 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         RoadData roadData = RoadData.getOrCreateRoadData(serverWorld);
         //RoadMath.estimateMemoryUsage();
+
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
+        if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount) {
+            locateStructureDynamically(serverWorld, 500);
+        }
+
+        cacheDynamicVillages(roadData, context);
+
         generateRoad(roadData, context);
         return true;
+    }
+
+    private void cacheDynamicVillages(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
+        if (!pendingVillagesToCache.isEmpty()) {
+            Iterator<BlockPos> iterator = pendingVillagesToCache.iterator();
+
+            while (iterator.hasNext()) {
+                BlockPos villagePos = iterator.next();
+                addNewVillageToCache(villagePos, roadData, context);
+                iterator.remove(); // Remove from the Set after caching
+            }
+        }
     }
 
     private void generateRoad(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
@@ -116,6 +139,36 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         }
     }
 
+    public void addNewVillageToCache(BlockPos newVillage, RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
+        List<BlockPos> existingVillages = roadData.getStructureLocations();
+
+        // Find the closest existing village to the new village
+        BlockPos closestVillage = findClosestVillage(newVillage, existingVillages);
+
+        if (closestVillage == null) {
+            return; // No existing villages to connect to
+        }
+
+        // Generate a unique road identifier
+        int roadId = calculateRoadId(newVillage, closestVillage);
+        Random deterministicRandom = Random.create(roadId);
+
+        int width = getRandomWidth(deterministicRandom, context);
+        int type = allowedRoadTypes(deterministicRandom);
+        if (type == -1) {
+            return; // No valid road type, skip
+        }
+        BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
+
+        // Generate road path
+        List<BlockPos> waypoints = RoadMath.generateControlPoints(newVillage, closestVillage, deterministicRandom);
+        Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
+
+        // Update cache with the new road
+        roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
+        roadSegmentsCache.put(roadId, roadPath);
+    }
+
     private int allowedRoadTypes(Random deterministicRandom) {
         if (ModConfig.allowArtificial && ModConfig.allowNatural){
             return getRandomRoadType(deterministicRandom);
@@ -142,11 +195,21 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             // Middle path placement with buoy logic
             int segmentIndex = 0;
             for (Records.RoadSegmentData segmentEntry : roadEntry.getValue()) {
+                segmentIndex++;
+                if (segmentIndex == 1){
+                    continue;
+                }
+                if (segmentEntry.middle().equals(new BlockPos(0, 0, 0))) {
+                    System.out.println("Road segment " + segmentIndex + ": " + segmentEntry + "000");
+                }
                 BlockPos middleBlockPos = segmentEntry.middle();
                 ChunkPos middleChunk = new ChunkPos(middleBlockPos);
 
                 // Place width blocks
                 for (BlockPos widthBlockPos : segmentEntry.widthBlocks()) {
+                    if (widthBlockPos.equals(new BlockPos(0, 0, 0))) {
+                        System.out.println("Road segment " + segmentIndex + ": " + segmentEntry + "000 width");
+                    }
                     ChunkPos widthChunk = new ChunkPos(widthBlockPos);
                     if (!currentChunk.equals(widthChunk)) {
                         continue;
@@ -157,7 +220,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 if (currentChunk.equals(middleChunk)) {
                     placeOnSurface(structureWorldAccess, middleBlockPos, material, natural, deterministicRandom, segmentIndex);
                 }
-                segmentIndex++;
             }
         }
     }
@@ -229,15 +291,21 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         return closestVillage;
     }
 
-    private Boolean locateStructure(int chunksNeeded) {
-        if (counter % chunksNeeded != 0){
-            counter++;
-            return false;
+    private void locateStructureDynamically(ServerWorld serverWorld, int chunksNeeded) {
+        if (chunksForLocatingCounter % chunksNeeded != 0){
+            chunksForLocatingCounter++;
         }
-        LOGGER.info("Locating structure dynamically");
-        counter = 1;
-        return true;
+        else {
+            LOGGER.info("Locating structure dynamically");
+            try {
+                StructureLocator.locateConfiguredStructure(serverWorld, 1);
+            } catch (CommandSyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            chunksForLocatingCounter = 1;
+        }
     }
+
     private BlockState getRandomNaturalMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
         List<BlockState> materialsList = context.getConfig().getNaturalMaterials();
         return materialsList.get(deterministicRandom.nextInt(materialsList.size()));

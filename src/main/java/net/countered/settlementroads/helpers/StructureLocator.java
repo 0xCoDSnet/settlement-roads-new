@@ -4,6 +4,8 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import net.countered.settlementroads.SettlementRoads;
+import net.countered.settlementroads.config.ModConfig;
+import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.command.argument.RegistryPredicateArgumentType;
 import net.minecraft.registry.Registry;
@@ -26,19 +28,34 @@ public class StructureLocator {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
-    public static void locateStructures(ServerWorld serverWorld, String structureId, int count, Boolean isTag) throws CommandSyntaxException {
-        LOGGER.info("Locating structure: " + structureId);
-        LOGGER.info("Locating " + count + " structures...");
+    public static void locateConfiguredStructure(ServerWorld serverWorld, int locateCount) throws CommandSyntaxException {
+        LOGGER.info("Locating " + locateCount + " " + ModConfig.structureToLocate);
+        try {
+            // Try as key first
+            locateStructures(serverWorld, ModConfig.structureToLocate, locateCount, false);
+        } catch (IllegalArgumentException eKey) {
+            try {
+                // If key parsing fails, try as tag
+                locateStructures(serverWorld, ModConfig.structureToLocate, locateCount, true);
+            } catch (Exception eTag) {
+                LOGGER.error("Failed to locate structure as both key and tag: " + locateCount, eTag);
+            }
+        }
+    }
+
+    private static void locateStructures(ServerWorld serverWorld, String structureId, int locateCount, Boolean isTag) throws CommandSyntaxException {
         if (isTag) {
             TagKey<Structure> structureTag = TagKey.of(RegistryKeys.STRUCTURE, Identifier.of(structureId));
-
-            for (int x = 0; x < count; x++) {
-                BlockPos structureLocation = serverWorld.locateStructure(structureTag, serverWorld.getSpawnPos(), 100, true);
-
-                if (structureLocation != null) {
-                    LOGGER.info("Structure found at " + "/tp "+ structureLocation.getX() +" "+ 100 +" "+ structureLocation.getZ());
-                    RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation);
-                }
+            for (int x = 0; x < locateCount; x++) {
+                serverWorld.getServer().execute(() -> {
+                    BlockPos structureLocation = serverWorld.locateStructure(structureTag, serverWorld.getSpawnPos(), 50, true);
+                    if (structureLocation != null) {
+                        LOGGER.info(ModConfig.structureToLocate + " found at " + "/tp " + structureLocation.getX() + " " + 100 + " " + structureLocation.getZ());
+                        RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation);
+                        // Add new village position to pending for cache
+                        RoadFeature.pendingVillagesToCache.add(structureLocation);
+                    }
+                });
             }
         }
         else {
@@ -53,15 +70,17 @@ public class StructureLocator {
             RegistryEntryList<Structure> registryEntryList = (RegistryEntryList<Structure>) getStructureListForPredicate(predicate, registry)
                     .orElseThrow(() -> new IllegalArgumentException("Structure not found for identifier: " + structureId));
 
-            for (int x = 0; x < count; x++) {
-                Pair<BlockPos, RegistryEntry<Structure>> structureLocation = serverWorld.getChunkManager()
-                        .getChunkGenerator()
-                        .locateStructure(serverWorld, registryEntryList, serverWorld.getSpawnPos(), 100, true);
+            for (int x = 0; x < locateCount; x++) {
+                serverWorld.getServer().execute(() -> {
+                    Pair<BlockPos, RegistryEntry<Structure>> structureLocation = serverWorld.getChunkManager()
+                            .getChunkGenerator()
+                            .locateStructure(serverWorld, registryEntryList, serverWorld.getSpawnPos(), 50, true);
 
-                if (structureLocation != null) {
-                    LOGGER.info("Structure found at " + structureLocation);
-                    RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation.getFirst());
-                }
+                    if (structureLocation != null) {
+                        LOGGER.info("Structure found at " + structureLocation);
+                        RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation.getFirst());
+                    }
+                });
             }
         }
     }
