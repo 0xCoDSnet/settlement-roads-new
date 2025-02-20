@@ -20,7 +20,7 @@ public class ModEventHandler {
         ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
             try {
                 if (RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().size() < ModConfig.initialLocatingCount) {
-                    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount);
+                    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
                 }
             } catch (CommandSyntaxException e) {
                 throw new RuntimeException(e);

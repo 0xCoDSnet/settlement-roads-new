@@ -20,20 +20,23 @@ public class SettlementRoads implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
 	// TODO
-	// Biome specific road changes
-	// Location lag reducing
+	// IMPORTANT
 	// Mile Markers
 	// Bridges
 	// Tunnels
 	// Lanterns
-	// Benches
 	// Distance signs
-	// Road qualities blocks: mossy variants, rooted dirt,
 	// config to place landmarks instead of roads
 	// clear snow from road?
 	// Make artificial roads more artificial
 	// Remove placed blocks from caches
-	// Possibly incorrect roads / broken roads when recaching on world reload?
+	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
+	// Change dynamic locating from 0 0 to player coords
+
+	// OPTIONAL
+	// Road qualities blocks: mossy variants, rooted dirt,
+	// Biome specific road changes
+	// Location lag reducing (async locator?)
 
 	@Override
 	public void onInitialize() {

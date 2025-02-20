@@ -298,7 +298,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         else {
             LOGGER.info("Locating structure dynamically");
             try {
-                StructureLocator.locateConfiguredStructure(serverWorld, 1);
+                StructureLocator.locateConfiguredStructure(serverWorld, 1, true);
             } catch (CommandSyntaxException e) {
                 throw new RuntimeException(e);
             }
