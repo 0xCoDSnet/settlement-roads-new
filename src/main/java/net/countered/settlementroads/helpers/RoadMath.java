@@ -128,7 +128,7 @@ public class RoadMath {
         double distance = Math.sqrt(dx * dx + dz * dz);
 
         // Normalize the vector and scale it to 50 blocks
-        double scale = 50 / distance;
+        double scale = 60 / distance;
         double offsetX = dx * scale;
         double offsetZ = dz * scale;
 

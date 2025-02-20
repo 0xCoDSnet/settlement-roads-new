@@ -4,6 +4,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
+import net.countered.settlementroads.events.ModEventHandler;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.RoadMath;
 import net.countered.settlementroads.helpers.StructureLocator;
@@ -65,14 +66,14 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     @Override
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
-        RoadData roadData = RoadData.getOrCreateRoadData(serverWorld);
+        RoadData roadData = ModEventHandler.roadData;
         //RoadMath.estimateMemoryUsage();
 
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
         if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount) {
-            locateStructureDynamically(serverWorld, 500);
+            locateStructureDynamically(serverWorld, 400);
         }
 
         cacheDynamicVillages(roadData, context);

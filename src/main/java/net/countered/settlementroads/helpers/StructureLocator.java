@@ -5,8 +5,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
+import net.countered.settlementroads.events.ModEventHandler;
 import net.countered.settlementroads.features.RoadFeature;
-import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.command.argument.RegistryPredicateArgumentType;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -22,7 +22,6 @@ import net.minecraft.world.gen.structure.Structure;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 import java.util.Optional;
 
@@ -93,7 +92,8 @@ public class StructureLocator {
                                      serverWorld.locateStructure(structureTag, serverWorld.getSpawnPos(), 50, true);
         if (structureLocation != null) {
             LOGGER.info(ModConfig.structureToLocate + " found at " + "/tp " + structureLocation.getX() + " " + 100 + " " + structureLocation.getZ());
-            RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation);
+            ModEventHandler.roadData.getStructureLocations().add(structureLocation);
+            ModEventHandler.roadData.markDirty();
             // Add new village position to pending for cache
             RoadFeature.pendingVillagesToCache.add(structureLocation);
         }
@@ -108,7 +108,10 @@ public class StructureLocator {
                         .locateStructure(serverWorld, registryEntryList, serverWorld.getSpawnPos(), 50, true);
         if (structureLocation != null) {
             LOGGER.info("Structure found at " + structureLocation);
-            RoadData.getOrCreateRoadData(serverWorld).getStructureLocations().add(structureLocation.getFirst());
+            ModEventHandler.roadData.getStructureLocations().add(structureLocation.getFirst());
+            ModEventHandler.roadData.markDirty();
+            // Add new village position to pending for cache
+            RoadFeature.pendingVillagesToCache.add(structureLocation.getFirst());
         }
     }
 
