@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
@@ -43,6 +44,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
     // Villages that need to be added to cache
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
+    // Road post-processing positions
+    public static Set<Records.RoadPostProcessingData> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -228,7 +231,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, int natural, Random deterministicRandom, int centerBlockCount) {
         double naturalBlockChance = 0.3;
-
         BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
         BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
@@ -249,6 +251,10 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 setBlockState(structureWorldAccess, surfacePos.up(1), Blocks.AIR.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos.up(2), Blocks.AIR.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos.up(3), Blocks.AIR.getDefaultState());
+            }
+            if (centerBlockCount % 20 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaqueFullCube()){
+                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos);
+                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, Set.of(surfacePos)));
             }
         }
     }

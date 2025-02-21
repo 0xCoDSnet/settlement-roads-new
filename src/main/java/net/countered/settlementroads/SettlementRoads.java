@@ -32,6 +32,7 @@ public class SettlementRoads implements ModInitializer {
 	// Remove placed blocks from caches
 	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
 	// Change dynamic locating from 0 0 to player coords
+	// Add mixed stone roads / mud / dirt
 
 	// OPTIONAL
 	// Road qualities blocks: mossy variants, rooted dirt,
