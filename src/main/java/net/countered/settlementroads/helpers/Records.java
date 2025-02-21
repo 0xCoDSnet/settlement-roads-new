@@ -12,5 +12,5 @@ public class Records {
 
     public record RoadSegmentData (BlockPos middle, Set<BlockPos> widthBlocks){}
 
-    public record RoadPostProcessingData (Set<BlockPos> placedRoadBlockPos, Set<BlockPos> placedSignBlockPos){}
+    public record RoadPostProcessingData (BlockPos placedRoadBlockPos, BlockPos placedSignBlockPos){}
 }

@@ -16,9 +16,11 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
@@ -52,27 +54,24 @@ public class ModEventHandler {
             RoadFeature.roadAttributesCache.clear();
             RoadFeature.roadChunksCache.clear();
         });
-        // Example in a tick handler
-        ServerTickEvents.END_WORLD_TICK.register(serverWorld -> {
-            updateSigns(serverWorld);
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            updateSigns(server.getOverworld());
         });
     }
     private static void updateSigns(ServerWorld serverWorld) {
 
-        for (Records.RoadPostProcessingData roadPostProcessingData : RoadFeature.roadPostProcessingPositions) {
-            for (BlockPos signPos : roadPostProcessingData.placedSignBlockPos()) {
-                if (!serverWorld.getWorldChunk(signPos).getStatus().isAtLeast(ChunkStatus.FULL)) {
-                    return;
-                }
-                // Update the sign
-                BlockEntity entity = serverWorld.getBlockEntity(signPos);
-                if (entity instanceof SignBlockEntity signEntity) {
-                    signEntity.setText(new SignText().withMessage(1, Text.literal("ho")), true);
-                    signEntity.markDirty();
-                    LOGGER.info("Updated sign at " + signPos);
-                }
+        List<Records.RoadPostProcessingData> toProcess = new ArrayList<>(RoadFeature.roadPostProcessingPositions);
+
+        for (Records.RoadPostProcessingData roadPostProcessingData : toProcess) {
+            BlockPos signPos = roadPostProcessingData.placedSignBlockPos();
+
+            BlockEntity entity = serverWorld.getBlockEntity(signPos);
+            if (entity instanceof SignBlockEntity signEntity) {
+                signEntity.setText(new SignText().withMessage(1, Text.literal("ho")), true);
+                signEntity.markDirty();
+                LOGGER.info("Updated sign at " + signPos);
             }
-            //RoadFeature.roadPostProcessingPositions.remove(roadPostProcessingData);
+            RoadFeature.roadPostProcessingPositions.remove(roadPostProcessingData);
         }
     }
 }

@@ -6,7 +6,6 @@ import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.events.ModEventHandler;
 import net.countered.settlementroads.helpers.Records;
-import net.countered.settlementroads.helpers.RoadMath;
 import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.block.Block;
@@ -30,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
@@ -45,7 +43,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Villages that need to be added to cache
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
     // Road post-processing positions
-    public static Set<Records.RoadPostProcessingData> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
+    public static List<Records.RoadPostProcessingData> roadPostProcessingPositions = new ArrayList<>();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -79,22 +77,10 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             locateStructureDynamically(serverWorld, 400);
         }
 
-        cacheDynamicVillages(roadData, context);
+        RoadCaching.cacheDynamicVillages(roadData, context);
 
         generateRoad(roadData, context);
         return true;
-    }
-
-    private void cacheDynamicVillages(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        if (!pendingVillagesToCache.isEmpty()) {
-            Iterator<BlockPos> iterator = pendingVillagesToCache.iterator();
-
-            while (iterator.hasNext()) {
-                BlockPos villagePos = iterator.next();
-                addNewVillageToCache(villagePos, roadData, context);
-                iterator.remove(); // Remove from the Set after caching
-            }
-        }
     }
 
     private void generateRoad(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
@@ -102,89 +88,10 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockPos genPos = context.getOrigin();
         ChunkPos currentChunk = new ChunkPos(genPos);
         if (roadChunksCache.isEmpty()) {
-            runCachingLogic(roadData, context);
+            RoadCaching.runCachingLogic(roadData, context);
         }
         if (roadChunksCache.contains(currentChunk)){
             runRoadLogic(currentChunk, structureWorldAccess);
-        }
-    }
-
-    private void runCachingLogic(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockPos> villages = roadData.getStructureLocations();
-        Map<BlockPos, BlockPos> closestVillageMap = new HashMap<>();
-
-        for (BlockPos village : villages) {
-            BlockPos closestVillage = findClosestVillage(village, villages);
-            if (closestVillage != null) {
-                closestVillageMap.put(village, closestVillage);
-            }
-        }
-        // Generate roads for each village to its closest village
-        for (Map.Entry<BlockPos, BlockPos> entry : closestVillageMap.entrySet()) {
-            BlockPos start = entry.getKey();
-            BlockPos end = entry.getValue();
-            // Generate a unique road identifier for the current road segment
-            int roadId = calculateRoadId(start, end);
-            Random deterministicRandom = Random.create(roadId);
-            int width = getRandomWidth(deterministicRandom, context);
-
-            int type = allowedRoadTypes(deterministicRandom);
-            if (type == -1) {
-                continue;
-            }
-            BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
-
-            // Calculate a determined path
-            List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
-
-            roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
-            roadSegmentsCache.put(roadId, roadPath);
-        }
-    }
-
-    public void addNewVillageToCache(BlockPos newVillage, RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockPos> existingVillages = roadData.getStructureLocations();
-
-        // Find the closest existing village to the new village
-        BlockPos closestVillage = findClosestVillage(newVillage, existingVillages);
-
-        if (closestVillage == null) {
-            return; // No existing villages to connect to
-        }
-
-        // Generate a unique road identifier
-        int roadId = calculateRoadId(newVillage, closestVillage);
-        Random deterministicRandom = Random.create(roadId);
-
-        int width = getRandomWidth(deterministicRandom, context);
-        int type = allowedRoadTypes(deterministicRandom);
-        if (type == -1) {
-            return; // No valid road type, skip
-        }
-        BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
-
-        // Generate road path
-        List<BlockPos> waypoints = RoadMath.generateControlPoints(newVillage, closestVillage, deterministicRandom);
-        Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
-
-        // Update cache with the new road
-        roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
-        roadSegmentsCache.put(roadId, roadPath);
-    }
-
-    private int allowedRoadTypes(Random deterministicRandom) {
-        if (ModConfig.allowArtificial && ModConfig.allowNatural){
-            return getRandomRoadType(deterministicRandom);
-        }
-        else if (ModConfig.allowArtificial){
-            return 0;
-        }
-        else if (ModConfig.allowNatural) {
-            return 1;
-        }
-        else {
-            return -1;
         }
     }
 
@@ -203,17 +110,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 if (segmentIndex == 1){
                     continue;
                 }
-                if (segmentEntry.middle().equals(new BlockPos(0, 0, 0))) {
-                    System.out.println("Road segment " + segmentIndex + ": " + segmentEntry + "000");
-                }
                 BlockPos middleBlockPos = segmentEntry.middle();
                 ChunkPos middleChunk = new ChunkPos(middleBlockPos);
 
                 // Place width blocks
                 for (BlockPos widthBlockPos : segmentEntry.widthBlocks()) {
-                    if (widthBlockPos.equals(new BlockPos(0, 0, 0))) {
-                        System.out.println("Road segment " + segmentIndex + ": " + segmentEntry + "000 width");
-                    }
                     ChunkPos widthChunk = new ChunkPos(widthBlockPos);
                     if (!currentChunk.equals(widthChunk)) {
                         continue;
@@ -227,7 +128,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             }
         }
     }
-
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, int natural, Random deterministicRandom, int centerBlockCount) {
         double naturalBlockChance = 0.3;
@@ -253,8 +153,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 setBlockState(structureWorldAccess, surfacePos.up(3), Blocks.AIR.getDefaultState());
             }
             if (centerBlockCount % 20 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaqueFullCube()){
+                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, surfacePos));
                 RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos);
-                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, Set.of(surfacePos)));
             }
         }
     }
@@ -278,26 +178,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         );
     }
 
-    private int calculateRoadId(BlockPos start, BlockPos end) {
-        return start.hashCode() ^ end.hashCode();
-    }
-
-    private BlockPos findClosestVillage(BlockPos currentVillage, List<BlockPos> allVillages) {
-        BlockPos closestVillage = null;
-        double minDistance = Double.MAX_VALUE;
-
-        for (BlockPos village : allVillages) {
-            if (!village.equals(currentVillage)) {
-                double distance = currentVillage.getSquaredDistance(village);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestVillage = village;
-                }
-            }
-        }
-        return closestVillage;
-    }
-
     private void locateStructureDynamically(ServerWorld serverWorld, int chunksNeeded) {
         if (chunksForLocatingCounter % chunksNeeded != 0){
             chunksForLocatingCounter++;
@@ -311,25 +191,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             }
             chunksForLocatingCounter = 1;
         }
-    }
-
-    private BlockState getRandomNaturalMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getNaturalMaterials();
-        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
-    }
-
-    private BlockState getRandomArtificialMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
-        return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
-    }
-
-    private int getRandomWidth(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<Integer> widthList = context.getConfig().getWidths();
-        return widthList.get(deterministicRandom.nextInt(widthList.size()));
-    }
-
-    private int getRandomRoadType(Random deterministicRandom) {
-        return deterministicRandom.nextBetween(0, 1);
     }
 }
 
