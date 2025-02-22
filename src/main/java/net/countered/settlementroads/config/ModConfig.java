@@ -21,6 +21,6 @@ public class ModConfig extends MidnightConfig {
     @Entry(category = "roads", name = "Allow natural roads")
     public static boolean allowNatural = true;
 
-    @Entry(category = "roads", name = "Place waypoints instead")
+    @Entry(category = "roads", name = "Place waypoints instead of roads")
     public static boolean placeWaypoints = false;
 }

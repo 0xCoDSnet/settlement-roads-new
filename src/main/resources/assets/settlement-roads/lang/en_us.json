@@ -13,5 +13,7 @@
   "settlement-roads.midnightconfig.allowArtificial.tooltip": "Whether artificial roads are allowed to generate",
   "settlement-roads.midnightconfig.allowNatural": "Allow natural roads",
   "settlement-roads.midnightconfig.allowNatural.tooltip": "Whether natural roads are allowed to generate",
+  "settlement-roads.midnightconfig.placeWaypoints": "Place Waypoints instead of Roads",
+  "settlement-roads.midnightconfig.placeWaypoints.tooltip": "Disables road generation in favor of waypoint generation",
   "settlement-roads.midnightconfig.title":"Countered's Settlement Roads"
 }
