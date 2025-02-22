@@ -43,7 +43,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Villages that need to be added to cache
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
     // Road post-processing positions
-    public static List<Records.RoadPostProcessingData> roadPostProcessingPositions = new ArrayList<>();
+    public static List<BlockPos> roadPostProcessingPositions = new ArrayList<>();
+    public static List<BlockPos> signPostProcessingPositions = new ArrayList<>();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -142,7 +143,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         }
         else {
             if (centerBlockCount % 20 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaqueFullCube()){
-                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, surfacePos));
+                signPostProcessingPositions.add(surfacePos);
                 RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos);
             }
             if (ModConfig.placeWaypoints) {
@@ -158,11 +159,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     return;
                 }
                 setBlockState(structureWorldAccess, surfacePos.down(), material);
-                setBlockState(structureWorldAccess, surfacePos.up(0), Blocks.AIR.getDefaultState());
-                setBlockState(structureWorldAccess, surfacePos.up(1), Blocks.AIR.getDefaultState());
-                setBlockState(structureWorldAccess, surfacePos.up(2), Blocks.AIR.getDefaultState());
-                setBlockState(structureWorldAccess, surfacePos.up(3), Blocks.AIR.getDefaultState());
             }
+            // add road block position to post process
+            roadPostProcessingPositions.add(surfacePos.down());
         }
     }
 

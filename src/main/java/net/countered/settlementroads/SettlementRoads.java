@@ -21,12 +21,10 @@ public class SettlementRoads implements ModInitializer {
 
 	// TODO
 	// IMPORTANT
-	// Mile Markers
 	// Bridges
 	// Tunnels
 	// Lanterns
 	// Distance signs
-	// clear snow from road?
 	// Make artificial roads more artificial
 	// Remove placed blocks from caches
 	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
