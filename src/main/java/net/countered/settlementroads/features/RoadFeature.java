@@ -141,6 +141,17 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             }
         }
         else {
+            if (centerBlockCount % 20 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaqueFullCube()){
+                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, surfacePos));
+                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos);
+            }
+            if (ModConfig.placeWaypoints) {
+                if (centerBlockCount % 30 == 0) {
+                    RoadStructures.placeWaypointMarker(structureWorldAccess, surfacePos);
+                }
+                return;
+            }
+            // place road
             if (natural == 0 || deterministicRandom.nextDouble() < naturalBlockChance) {
                 // If not water, just place the road
                 if (!placeAllowedCheck(blockStateAtPos.getBlock())) {
@@ -151,10 +162,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 setBlockState(structureWorldAccess, surfacePos.up(1), Blocks.AIR.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos.up(2), Blocks.AIR.getDefaultState());
                 setBlockState(structureWorldAccess, surfacePos.up(3), Blocks.AIR.getDefaultState());
-            }
-            if (centerBlockCount % 20 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaqueFullCube()){
-                roadPostProcessingPositions.add(new Records.RoadPostProcessingData(null, surfacePos));
-                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos);
             }
         }
     }

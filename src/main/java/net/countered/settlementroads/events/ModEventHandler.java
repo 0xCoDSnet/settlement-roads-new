@@ -58,6 +58,7 @@ public class ModEventHandler {
             updateSigns(server.getOverworld());
         });
     }
+
     private static void updateSigns(ServerWorld serverWorld) {
 
         List<Records.RoadPostProcessingData> toProcess = new ArrayList<>(RoadFeature.roadPostProcessingPositions);
