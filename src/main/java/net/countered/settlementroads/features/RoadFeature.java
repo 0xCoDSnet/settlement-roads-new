@@ -99,7 +99,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     }
 
     private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess) {
-        int averagingRadius = 2;
+        int averagingRadius = 4;
 
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> roadEntry : roadSegmentsCache.entrySet()) {
             int roadId = roadEntry.getKey();
@@ -130,7 +130,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                         }
                     }
 
-                    int averageY = (int) (heights.stream().mapToInt(Integer::intValue).average().orElse(middleBlockPos.getY()));
+                    int averageY = (int) Math.round(heights.stream().mapToInt(Integer::intValue).average().orElse(middleBlockPos.getY()));
                     BlockPos averagedPos = new BlockPos(middleBlockPos.getX(), averageY, middleBlockPos.getZ());
 
                     placeOnSurface(structureWorldAccess, averagedPos, material, natural, deterministicRandom, segmentIndex);
@@ -173,18 +173,23 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             if (natural == 0 || deterministicRandom.nextDouble() < naturalBlockChance) {
                 // If not water, just place the road
                 if (!placeAllowedCheck(blockStateAtPos.getBlock())
-                        || (!structureWorldAccess.getBlockState(surfacePos.down()).isOpaque() && !structureWorldAccess.getBlockState(surfacePos.down(2)).isOpaque())
-                        //|| (structureWorldAccess.getBlockState(surfacePos).isOpaque() &&
-                        || structureWorldAccess.getBlockState(surfacePos.up(2)).isOpaque()
+                        || (!structureWorldAccess.getBlockState(surfacePos.down()).isOpaque()
+                        && !structureWorldAccess.getBlockState(surfacePos.down(2)).isOpaque()
+                        && !structureWorldAccess.getBlockState(surfacePos.down(3)).isOpaque())
+                        || structureWorldAccess.getBlockState(surfacePos.up(3)).isOpaque()
                 ){
                     return;
                 }
                 setBlockState(structureWorldAccess, surfacePos.down(), material);
-                for (int i = 0; i < 3; i++) {
-                    if (structureWorldAccess.getBlockState(surfacePos.up(i)).getBlock().equals(Blocks.AIR)) {
-                        break;
+
+                for (int i = 0; i < 4; i++) {
+                    if (i >= 2 && !structureWorldAccess.getBlockState(surfacePos.down(i)).isOpaque()
+                            || structureWorldAccess.getBlockState(surfacePos.down(i)).isOf(Blocks.GRASS_BLOCK)) {
+                        setBlockState(structureWorldAccess, surfacePos.down(i), Blocks.DIRT.getDefaultState());
                     }
-                    setBlockState(structureWorldAccess, surfacePos.up(i), Blocks.AIR.getDefaultState());
+                    if (!structureWorldAccess.getBlockState(surfacePos.up(i)).getBlock().equals(Blocks.AIR)) {
+                        setBlockState(structureWorldAccess, surfacePos.up(i), Blocks.AIR.getDefaultState());
+                    }
                 }
             }
             // add road block position to post process

@@ -146,11 +146,13 @@ public class RoadMath {
         double dx = end.getX() - start.getX();
         double dz = end.getZ() - start.getZ();
         double distance = Math.sqrt(dx * dx + dz * dz);
-        // Normalize the vector and scale it to 50 blocks
+        // Distance to end positions
         double scale = 60 / distance;
+
         double offsetX = dx * scale;
         double offsetZ = dz * scale;
-        // Offset the start and end points by 50 blocks
+
+        // Offset the start and end points by 60 blocks
         BlockPos adjustedStart = new BlockPos((int) (start.getX() + offsetX), start.getY(), (int) (start.getZ() + offsetZ));
         BlockPos adjustedEnd = new BlockPos((int) (end.getX() - offsetX), end.getY(), (int) (end.getZ() - offsetZ));
 
@@ -165,7 +167,7 @@ public class RoadMath {
         double perpX = -dirZ;
         double perpZ = dirX;
         // Generate control points at fixed step distances
-        for (double d = step; d < distance - step; d += step) {
+        for (double d = step*2; d < distance - step*2; d += step) {
             int x = (int) (adjustedStart.getX() + dirX * d);
             int z = (int) (adjustedStart.getZ() + dirZ * d);
             // Apply perpendicular offset randomly

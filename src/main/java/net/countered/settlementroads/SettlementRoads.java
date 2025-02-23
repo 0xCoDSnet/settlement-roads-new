@@ -25,14 +25,12 @@ public class SettlementRoads implements ModInitializer {
 	// Tunnels
 	// Lanterns
 	// Distance signs (being removed because post processing)
-	// Make artificial roads more artificial
 	// Remove placed blocks from caches
-	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
 	// Add mixed stone roads / mud / dirt
 	// fix roads on snow icebergs
 
 	// OPTIONAL
-	// Road qualities blocks: mossy variants, rooted dirt,
+	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
 	// Biome specific road changes
 	// Location lag reducing (async locator?)
 
