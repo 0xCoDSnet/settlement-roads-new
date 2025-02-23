@@ -14,8 +14,6 @@ public class RoadMath {
         Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>(); // Has to be linked
         Set<BlockPos> middlePositions = new HashSet<>();  // Track middle blocks
 
-        BlockPos prevPos = controlPoints.getFirst(); // Start with the first control point
-
         for (int i = 0; i < controlPoints.size() - 1; i++) {
             BlockPos p0 = controlPoints.get(Math.max(0, i - 1));
             BlockPos p1 = controlPoints.get(i);
@@ -24,7 +22,7 @@ public class RoadMath {
 
             BlockPos lastSplinePos = null;
 
-            for (double t = 0; t <= 1.0; t += 0.1) {  // Use fine-grained t increments
+            for (double t = 0; t <= 1.0; t += 0.2) {  // Use fine-grained t increments
                 BlockPos nextSplinePos = calculateSplinePosition(p0, p1, p2, p3, t);
 
                 if (lastSplinePos != null) {
@@ -36,10 +34,10 @@ public class RoadMath {
                             RoadFeature.roadChunksCache.add(new ChunkPos(middlePos));
 
                             // Generate road width
-                            roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width, middlePositions));
+                            roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
                         }
                         else {
-                            roadSegments.get(middlePos).addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width, middlePositions));
+                            roadSegments.get(middlePos).addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
                         }
                     }
                 }
@@ -65,8 +63,9 @@ public class RoadMath {
         return roadSegments;
     }
 
-    private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width, Set<BlockPos> middlePositions) {
+    private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
+        double adjustedWidth = width-0.05d;
         // Calculate tangent vector (direction of the road)
         int dx = next.getX() - prev.getX();
         int dz = next.getZ() - prev.getZ();
@@ -78,17 +77,16 @@ public class RoadMath {
         // Perpendicular vector (normal to the tangent)
         double px = -tangentZ;  // Perpendicular x
         double pz = tangentX;   // Perpendicular z
-        // Add middle block
-        BlockPos middle = new BlockPos(center.getX(), center.getY(), center.getZ());
+
         // Create road width using perpendicular vector
         List<BlockPos> widthLine = getStraightLine(
-                new BlockPos(center.getX() - (int) Math.round(px * (width / 2d)), center.getY(), center.getZ() - (int) Math.round(pz * (width / 2d))),
-                new BlockPos(center.getX() + (int) Math.round(px * (width / 2d)), center.getY(), center.getZ() + (int) Math.round(pz * (width / 2d)))
+                new BlockPos(center.getX() - (int) Math.round(px * (adjustedWidth / 2d)), center.getY(), center.getZ() - (int) Math.round(pz * (adjustedWidth / 2d))),
+                new BlockPos(center.getX() + (int) Math.round(px * (adjustedWidth / 2d)), center.getY(), center.getZ() + (int) Math.round(pz * (adjustedWidth / 2d)))
         );
         for (BlockPos widthBlockPos : widthLine) {
-            if (widthPositionsCache.contains(widthBlockPos)) {
-                continue;
-            }
+            //if (widthPositionsCache.contains(widthBlockPos)) {
+            //    continue;
+            //}
             widthPositionsCache.add(widthBlockPos);
             segmentWidthPositions.add(widthBlockPos);
             RoadFeature.roadChunksCache.add(new ChunkPos(widthBlockPos));
