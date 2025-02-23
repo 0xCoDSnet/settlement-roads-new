@@ -2,7 +2,6 @@ package net.countered.settlementroads.features;
 
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.helpers.Records;
-import net.countered.settlementroads.helpers.RoadMath;
 import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
@@ -40,7 +39,7 @@ public class RoadCaching {
 
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
-            Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
+            Map<BlockPos, Set<BlockPos>> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
             RoadFeature.roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));
             RoadFeature.roadSegmentsCache.put(roadId, roadPath);
@@ -70,7 +69,7 @@ public class RoadCaching {
 
         // Generate road path
         List<BlockPos> waypoints = RoadMath.generateControlPoints(newVillage, closestVillage, deterministicRandom);
-        Set<Records.RoadSegmentData> roadPath = RoadMath.calculateSplinePath(waypoints, width);
+        Map<BlockPos, Set<BlockPos>> roadPath = RoadMath.calculateSplinePath(waypoints, width);
 
         // Update cache with the new road
         RoadFeature.roadAttributesCache.put(roadId, new Records.RoadAttributesData(width, type, material, deterministicRandom));

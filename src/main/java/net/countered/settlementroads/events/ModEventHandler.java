@@ -8,6 +8,7 @@ import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
+import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.SignBlockEntity;
@@ -18,9 +19,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
@@ -60,32 +58,34 @@ public class ModEventHandler {
         });
     }
 
-    private static void clearRoad(ServerWorld serverWorld) {
-        List<BlockPos> toProcess = new ArrayList<>(RoadFeature.roadPostProcessingPositions);
+    private static final int MAX_BLOCKS_PER_TICK = 1;
 
-        for (BlockPos roadBlockPos : toProcess) {
-            for (int i = 1; i < 4; i++) {
-                if (serverWorld.getBlockState(roadBlockPos.up(i)).getBlock() == Blocks.AIR) {
-                    break;
+    private static void clearRoad(ServerWorld serverWorld) {
+        int processed = 0;
+        while (!RoadFeature.roadPostProcessingPositions.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
+            BlockPos roadBlockPos = RoadFeature.roadPostProcessingPositions.poll();
+            if (roadBlockPos != null) {
+                Block blockAbove = serverWorld.getBlockState(roadBlockPos.up()).getBlock();
+                if (blockAbove == Blocks.SNOW) {
+                    serverWorld.setBlockState(roadBlockPos.up(), Blocks.AIR.getDefaultState());
                 }
-                serverWorld.setBlockState(roadBlockPos.up(i), Blocks.AIR.getDefaultState());
             }
-            RoadFeature.roadPostProcessingPositions.remove(roadBlockPos);
+            processed++;
         }
     }
 
     private static void updateSigns(ServerWorld serverWorld) {
-        List<BlockPos> toProcess = new ArrayList<>(RoadFeature.signPostProcessingPositions);
-
-        for (BlockPos signPos : toProcess) {
-
-            BlockEntity entity = serverWorld.getBlockEntity(signPos);
-            if (entity instanceof SignBlockEntity signEntity) {
-                signEntity.setText(new SignText().withMessage(1, Text.literal("ho")), true);
-                signEntity.markDirty();
-                LOGGER.info("Updated sign at " + signPos);
+        int processed = 0;
+        while (!RoadFeature.signPostProcessingPositions.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
+            BlockPos signPos = RoadFeature.signPostProcessingPositions.poll();
+            if (signPos != null) {
+                BlockEntity entity = serverWorld.getBlockEntity(signPos);
+                if (entity instanceof SignBlockEntity signEntity) {
+                    signEntity.setText(new SignText().withMessage(1, Text.literal("ho")), true);
+                    signEntity.markDirty();
+                }
             }
-            RoadFeature.signPostProcessingPositions.remove(signPos);
+            processed++;
         }
     }
 }
