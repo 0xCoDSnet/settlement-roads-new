@@ -22,7 +22,7 @@ public class RoadMath {
 
             BlockPos lastSplinePos = null;
 
-            for (double t = 0; t <= 1.0; t += 0.2) {  // Use fine-grained t increments
+            for (double t = 0; t <= 1.0; t += 0.1) {  // Use fine-grained t increments
                 BlockPos nextSplinePos = calculateSplinePosition(p0, p1, p2, p3, t);
 
                 if (lastSplinePos != null) {

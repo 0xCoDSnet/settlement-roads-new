@@ -3,7 +3,7 @@ package net.countered.settlementroads.config;
 import eu.midnightdust.lib.config.MidnightConfig;
 
 public class ModConfig extends MidnightConfig {
-    @Entry(category = "structures", name = "Number of structures to locate on world load", isSlider = true, min = 0, max = 50)
+    @Entry(category = "structures", name = "Number of structures to locate on world load", isSlider = true, min = 0, max = 100)
     public static int initialLocatingCount = 5;
 
     @Entry(category = "structures", name = "Maximum Number of structures to locate", isSlider = true, min = 5, max = 1000)

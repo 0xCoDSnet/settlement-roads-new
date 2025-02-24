@@ -30,9 +30,9 @@ public class SettlementRoads implements ModInitializer {
 	// fix roads on snow icebergs
 
 	// OPTIONAL
-	// Possibly incorrect roads / broken roads when recaching on world reload? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
+	// Possibly broken roads when recaching on world reload? / Sometimes for unknown reason when adding dynamically (possibly because of average calc)? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
 	// Biome specific road changes
-	// Location lag reducing (async locator?)
+	// Location lag reducing (async locator?)/ structure essentials / place instant roads?
 
 	@Override
 	public void onInitialize() {
