@@ -3,14 +3,18 @@ package net.countered.settlementroads.config;
 import eu.midnightdust.lib.config.MidnightConfig;
 
 public class ModConfig extends MidnightConfig {
-    @Entry(category = "structures", name = "Number of structures to locate on world load", isSlider = true, min = 0, max = 100)
-    public static int initialLocatingCount = 5;
 
     @Entry(category = "structures", name = "Maximum Number of structures to locate", isSlider = true, min = 5, max = 1000)
-    public static int maxLocatingCount = 50;
+    public static int maxLocatingCount = 100;
 
     @Entry(category = "structures", name = "Structure to locate")
     public static String structureToLocate = "village";
+
+    @Entry(category = "pre-generation", name = "Number of structures to locate on world load", isSlider = true, min = 0, max = 100)
+    public static int initialLocatingCount = 5;
+
+    @Entry(category = "pre-generation", name = "Load road chunks instantly")
+    public static boolean loadRoadChunks = false;
 
     @Entry(category = "roads", name = "Distance between buoys")
     public static int distanceBetweenBuoys = 25;

@@ -30,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
@@ -41,7 +42,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Cache road attributes per roadId
     public static Map<Integer, Records.RoadAttributesData> roadAttributesCache = new HashMap<>();
     // Cache chunks where roads will be generated
-    public static final Set<ChunkPos> roadChunksCache = new HashSet<>();
+    public static final Set<ChunkPos> roadChunksCache = ConcurrentHashMap.newKeySet();
     // Villages that need to be added to cache
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
     // Road post-processing positions
@@ -57,7 +58,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         dontPlaceHere.add(Blocks.MANGROVE_ROOTS);
     }
 
-    private static int chunksForLocatingCounter = 1;
+    public static int chunksForLocatingCounter = 1;
 
     public static final RegistryKey<PlacedFeature> ROAD_FEATURE_PLACED_KEY =
             RegistryKey.of(RegistryKeys.PLACED_FEATURE, Identifier.of(SettlementRoads.MOD_ID, "road_feature_placed"));
@@ -72,13 +73,13 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         RoadData roadData = ModEventHandler.roadData;
-        RoadMath.estimateMemoryUsage();
+        //RoadMath.estimateMemoryUsage();
 
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
-        if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount) {
-            locateStructureDynamically(serverWorld, 300);
+        if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount && !ModConfig.loadRoadChunks) {
+            locateStructureDynamically(serverWorld, 400);
         }
 
         RoadCaching.cacheDynamicVillages(roadData, context);
@@ -91,7 +92,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         StructureWorldAccess structureWorldAccess = context.getWorld();
         BlockPos genPos = context.getOrigin();
         ChunkPos currentChunk = new ChunkPos(genPos);
-        if (roadChunksCache.isEmpty()) {
+        if (roadChunksCache.isEmpty() && !ModEventHandler.stopRecaching) {
             RoadCaching.runCachingLogic(roadData, context);
         }
         if (roadChunksCache.contains(currentChunk)){
@@ -183,7 +184,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             // orthogonal vector
             Vec3i orthogonalVector = new Vec3i(-directionVector.getZ(), 0, directionVector.getX());
 
-            // place distance sign TODO fix orientation dependant on start or end of road
+            // place distance sign
             if (centerBlockCount == 5){
                 RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, true);
             }
