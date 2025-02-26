@@ -1,14 +1,18 @@
 package net.countered.settlementroads.features;
 
+import net.countered.settlementroads.SettlementRoads;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class RoadMath {
 
     private static final Set<BlockPos> widthPositionsCache = new HashSet<>();
+    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     public static Map<BlockPos, Set<BlockPos>> calculateSplinePath(List<BlockPos> controlPoints, int width) {
         Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>(); // Has to be linked
@@ -84,9 +88,9 @@ public class RoadMath {
                 new BlockPos(center.getX() + (int) Math.round(px * (adjustedWidth / 2d)), center.getY(), center.getZ() + (int) Math.round(pz * (adjustedWidth / 2d)))
         );
         for (BlockPos widthBlockPos : widthLine) {
-            //if (widthPositionsCache.contains(widthBlockPos)) {
-            //    continue;
-            //}
+            if (widthPositionsCache.contains(widthBlockPos)) {
+                continue;
+            }
             widthPositionsCache.add(widthBlockPos);
             segmentWidthPositions.add(widthBlockPos);
             RoadFeature.roadChunksCache.add(new ChunkPos(widthBlockPos));
@@ -179,18 +183,15 @@ public class RoadMath {
         return controlPoints;
     }
 
-
-
     // debugging
     public static void estimateMemoryUsage() {
 
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> entry : RoadFeature.roadSegmentsCache.entrySet()) {
-
-            System.out.println("entry " + entry.getValue().size());
+            LOGGER.info("entry " + entry.getValue().size());
         }
 
-        System.out.println(RoadFeature.roadChunksCache.size());
-        System.out.println(RoadFeature.roadSegmentsCache.size());
-        System.out.println(RoadFeature.roadAttributesCache.size());
+        LOGGER.info("chunkscache"+RoadFeature.roadChunksCache.size());
+        LOGGER.info("roadsegmentscache"+RoadFeature.roadSegmentsCache.size());
+        LOGGER.info("roadattributescache"+RoadFeature.roadAttributesCache.size());
     }
 }

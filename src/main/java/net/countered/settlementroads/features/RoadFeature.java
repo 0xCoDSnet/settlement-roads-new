@@ -46,8 +46,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Villages that need to be added to cache
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
     // Road post-processing positions
-    public static Queue<BlockPos> roadPostProcessingPositions = new ConcurrentLinkedQueue<>();
+    public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
     public static Queue<Map.Entry<BlockPos, String>> signPostProcessingPositions = new ConcurrentLinkedQueue<>();
+    public static Set<Records.RoadDecoration> decorationPlacementPositions = ConcurrentHashMap.newKeySet();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -114,7 +115,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             List<BlockPos> middleBlockPositions = new ArrayList<>(roadEntry.getValue().keySet());
 
             for (int i = 2; i < middleBlockPositions.size() - 2; i++) {
-                BlockPos previousPos = middleBlockPositions.get(i - 2);
+                BlockPos prevPos = middleBlockPositions.get(i - 2);
                 BlockPos currentPos = middleBlockPositions.get(i);
                 BlockPos nextPos = middleBlockPositions.get(i + 2);
 
@@ -124,7 +125,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 ChunkPos middleChunk = new ChunkPos(currentPos);
 
                 if (currentChunk.equals(middleChunk)) {
-
                     List<Integer> heights = new ArrayList<>();
 
                     for (int j = -averagingRadius; j <= averagingRadius; j++) {
@@ -139,17 +139,43 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     int averageY = (int) Math.round(heights.stream().mapToInt(Integer::intValue).average().orElse(currentPos.getY()));
                     BlockPos averagedPos = new BlockPos(currentPos.getX(), averageY, currentPos.getZ());
 
-                    placeOnSurface(structureWorldAccess, averagedPos, material, natural, deterministicRandom, segmentIndex, nextPos, previousPos, middleBlockPositions);
-
+                    // first place width blocks
                     for (BlockPos widthBlockPos : roadEntry.getValue().get(currentPos)) {
                         BlockPos correctedYPos = new BlockPos(widthBlockPos.getX(), averageY, widthBlockPos.getZ());
-                        placeOnSurface(structureWorldAccess, correctedYPos, material, natural, deterministicRandom, -1, nextPos, previousPos, middleBlockPositions);
+                        placeOnSurface(structureWorldAccess, correctedYPos, material, natural, deterministicRandom, -1, nextPos, prevPos, middleBlockPositions);
                     }
+                    // then place middle blocks & decorations
+                    placeOnSurface(structureWorldAccess, averagedPos, material, natural, deterministicRandom, segmentIndex, nextPos, prevPos, middleBlockPositions);
+                    addDecoration(structureWorldAccess, averagedPos, segmentIndex, nextPos, prevPos, middleBlockPositions);
                 }
             }
         }
     }
 
+    private void addDecoration(StructureWorldAccess structureWorldAccess, BlockPos placePos, int segmentIndex, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
+        if (!(segmentIndex == 10 || segmentIndex == middleBlockPositions.size()-10 || segmentIndex % 60 == 0)){
+            return;
+        }
+        // Road vector
+        Vec3i directionVector = new Vec3i(
+                nextPos.getX() - prevPos.getX(),
+                0,
+                nextPos.getZ() - prevPos.getZ()
+        );
+        // orthogonal vector
+        Vec3i orthogonalVector = new Vec3i(-directionVector.getZ(), 0, directionVector.getX());
+        boolean isStart = true;
+        if (segmentIndex == middleBlockPositions.size()-10) {
+            isStart = false;
+        }
+        BlockPos shiftedPos = isStart
+                ? placePos.add(orthogonalVector.multiply(1))
+                : placePos.subtract(orthogonalVector.multiply(1));
+        BlockPos surfacePos = shiftedPos.withY(structureWorldAccess.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, shiftedPos.getX(), shiftedPos.getZ()));
+        if (!structureWorldAccess.getBlockState(surfacePos.down()).isOf(Blocks.WATER)) {
+            decorationPlacementPositions.add(new Records.RoadDecoration(surfacePos, orthogonalVector, segmentIndex, middleBlockPositions));
+        }
+    }
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, int natural, Random deterministicRandom, int centerBlockCount, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
         double naturalBlockChance = 0.3;
@@ -174,29 +200,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             // place road
             if (natural == 0 || deterministicRandom.nextDouble() < naturalBlockChance) {
                 placeRoadBlock(structureWorldAccess, blockStateAtPos, surfacePos, material);
+                // add road block position to post process
+                roadPostProcessingPositions.add(surfacePos.down());
             }
-            // Road vector
-            Vec3i directionVector = new Vec3i(
-                    nextPos.getX() - prevPos.getX(),
-                    0,
-                    nextPos.getZ() - prevPos.getZ()
-            );
-            // orthogonal vector
-            Vec3i orthogonalVector = new Vec3i(-directionVector.getZ(), 0, directionVector.getX());
-
-            // place distance sign
-            if (centerBlockCount == 10){
-                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, true, String.valueOf(middleBlockPositions.size()));
-            }
-            if (centerBlockCount == middleBlockPositions.size()-10) {
-                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, false, String.valueOf(middleBlockPositions.size()));
-            }
-            // place lantern
-            if (centerBlockCount % 30 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaque()){
-                RoadStructures.placeLantern(structureWorldAccess, surfacePos, orthogonalVector, 1);
-            }
-            // add road block position to post process
-            roadPostProcessingPositions.add(surfacePos.down());
         }
     }
 

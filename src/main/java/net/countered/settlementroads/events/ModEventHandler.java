@@ -4,8 +4,11 @@ package net.countered.settlementroads.events;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.RoadFeature;
+import net.countered.settlementroads.features.RoadStructures;
+import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.block.Block;
@@ -18,15 +21,14 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -65,8 +67,10 @@ public class ModEventHandler {
             RoadFeature.roadAttributesCache.clear();
             RoadFeature.roadChunksCache.clear();
         });
+        ServerChunkEvents.CHUNK_GENERATE.register((serverWorld, worldChunk) -> {
+            clearRoad(serverWorld, worldChunk);
+        });
         ServerTickEvents.START_SERVER_TICK.register(server -> {
-
             if (ModConfig.loadRoadChunks){
                 loadRoadChunksCompletely(server.getOverworld());
                 if (!toRemove.isEmpty()) {
@@ -79,8 +83,8 @@ public class ModEventHandler {
                     }
                 }
             }
+            placeDecorations(server.getOverworld());
             updateSigns(server.getOverworld());
-            clearRoad(server.getOverworld());
         });
     }
 
@@ -106,17 +110,25 @@ public class ModEventHandler {
 
     private static final int MAX_BLOCKS_PER_TICK = 1;
 
-    private static void clearRoad(ServerWorld serverWorld) {
-        int processed = 0;
-        while (!RoadFeature.roadPostProcessingPositions.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
-            BlockPos roadBlockPos = RoadFeature.roadPostProcessingPositions.poll();
-            if (roadBlockPos != null) {
-                Block blockAbove = serverWorld.getBlockState(roadBlockPos.up()).getBlock();
-                if (blockAbove == Blocks.SNOW) {
-                    serverWorld.setBlockState(roadBlockPos.up(), Blocks.AIR.getDefaultState());
+    private static void clearRoad(ServerWorld serverWorld, WorldChunk worldChunk) {
+        if (RoadFeature.roadPostProcessingPositions.isEmpty()) {
+            return;
+        }
+        for (BlockPos postProcessingPos : RoadFeature.roadPostProcessingPositions) {
+            if (postProcessingPos != null) {
+                if (!worldChunk.getPos().equals(new ChunkPos(postProcessingPos))) {
+                    continue;
                 }
+                Block blockAbove = worldChunk.getBlockState(postProcessingPos.up()).getBlock();
+                Block blockAtPos = worldChunk.getBlockState(postProcessingPos).getBlock();
+                if (blockAbove == Blocks.SNOW) {
+                    worldChunk.setBlockState(postProcessingPos.up(), Blocks.AIR.getDefaultState(), false);
+                    if (blockAtPos == Blocks.GRASS_BLOCK) {
+                        worldChunk.setBlockState(postProcessingPos, Blocks.GRASS_BLOCK.getDefaultState(), false);
+                    }
+                }
+                RoadFeature.roadPostProcessingPositions.remove(postProcessingPos);
             }
-            processed++;
         }
     }
 
@@ -148,6 +160,32 @@ public class ModEventHandler {
                 }
             }
             processed++;
+        }
+    }
+
+    private static void placeDecorations(ServerWorld serverWorld) {
+        if (RoadFeature.decorationPlacementPositions.isEmpty()) {
+            return;
+        }
+        for (Records.RoadDecoration roadDecoration : RoadFeature.decorationPlacementPositions) {
+            if (roadDecoration != null) {
+                BlockPos placePos = roadDecoration.placePos();
+                int centerBlockCount = roadDecoration.centerBlockCount();
+                List<BlockPos> middleBlockPositions = roadDecoration.middleBlockPositions();
+                Vec3i orthogonalVector = roadDecoration.vector();
+                // place distance sign
+                if (centerBlockCount == 10){
+                    RoadStructures.placeDistanceSign(serverWorld, placePos, orthogonalVector, 1, true, String.valueOf(middleBlockPositions.size()));
+                }
+                if (centerBlockCount == middleBlockPositions.size()-10) {
+                    RoadStructures.placeDistanceSign(serverWorld, placePos, orthogonalVector, 1, false, String.valueOf(middleBlockPositions.size()));
+                }
+                // place lantern
+                if (centerBlockCount % 60 == 0){
+                    RoadStructures.placeLantern(serverWorld, placePos, orthogonalVector, 1, true);
+                }
+                RoadFeature.decorationPlacementPositions.remove(roadDecoration);
+            }
         }
     }
 }
