@@ -47,7 +47,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
     // Road post-processing positions
     public static Queue<BlockPos> roadPostProcessingPositions = new ConcurrentLinkedQueue<>();
-    public static Queue<BlockPos> signPostProcessingPositions = new ConcurrentLinkedQueue<>();
+    public static Queue<Map.Entry<BlockPos, String>> signPostProcessingPositions = new ConcurrentLinkedQueue<>();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -185,11 +185,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             Vec3i orthogonalVector = new Vec3i(-directionVector.getZ(), 0, directionVector.getX());
 
             // place distance sign
-            if (centerBlockCount == 5){
-                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, true);
+            if (centerBlockCount == 10){
+                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, true, String.valueOf(middleBlockPositions.size()));
             }
-            if (centerBlockCount == middleBlockPositions.size()-5) {
-                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, false);
+            if (centerBlockCount == middleBlockPositions.size()-10) {
+                RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, false, String.valueOf(middleBlockPositions.size()));
             }
             // place lantern
             if (centerBlockCount % 30 == 0 && structureWorldAccess.getBlockState(surfacePos.down()).isOpaque()){

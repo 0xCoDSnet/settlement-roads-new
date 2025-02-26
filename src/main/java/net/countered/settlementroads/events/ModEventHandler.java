@@ -11,7 +11,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.SignBlockEntity;
+import net.minecraft.block.entity.HangingSignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -122,11 +123,27 @@ public class ModEventHandler {
     private static void updateSigns(ServerWorld serverWorld) {
         int processed = 0;
         while (!RoadFeature.signPostProcessingPositions.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
-            BlockPos signPos = RoadFeature.signPostProcessingPositions.poll();
-            if (signPos != null) {
+            Map.Entry<BlockPos, String> entry = RoadFeature.signPostProcessingPositions.poll();
+            if (entry != null) {
+                BlockPos signPos = entry.getKey();
+                String text = entry.getValue();
+
                 BlockEntity entity = serverWorld.getBlockEntity(signPos);
-                if (entity instanceof SignBlockEntity signEntity) {
-                    signEntity.setText(new SignText().withMessage(1, Text.literal("ho")), true);
+                if (entity instanceof HangingSignBlockEntity signEntity) {
+                    SignText signText = signEntity.getText(true);
+                    signText = (signText.withMessage(0, Text.literal("----------")));
+                    signText = (signText.withMessage(1, Text.literal("Next Village")));
+                    signText = (signText.withMessage(2, Text.literal(text+"m")));
+                    signText = (signText.withMessage(3, Text.literal("----------")));
+                    signEntity.setText(signText, true);
+
+                    SignText signTextBack = signEntity.getText(false);
+                    signTextBack = signTextBack.withMessage(0, Text.of("----------"));
+                    signTextBack = signTextBack.withMessage(1, Text.of("Welcome"));
+                    signTextBack = signTextBack.withMessage(2, Text.of("traveller"));
+                    signTextBack = signTextBack.withMessage(3, Text.of("----------"));
+                    signEntity.setText(signTextBack, false);
+
                     signEntity.markDirty();
                 }
             }
