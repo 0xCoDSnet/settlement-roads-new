@@ -44,20 +44,21 @@ public class RoadStructures {
         }
 
         if (type == DecorationType.SIGN) {
-            serverWorld.setBlockState(surfacePos.up(2), Blocks.SPRUCE_HANGING_SIGN.getDefaultState()
+            serverWorld.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_HANGING_SIGN.getDefaultState()
                     .with(Properties.ROTATION, rotation)
                     .with(Properties.ATTACHED, true), 3 );
-            RoadFeature.signPostProcessingPositions.add(Map.entry(surfacePos.up(2), signText));
+            RoadFeature.signPostProcessingPositions.add(Map.entry(surfacePos.up(2).offset(offsetDirection.getOpposite()), signText));
+
         } else if (type == DecorationType.LANTERN) {
-            serverWorld.setBlockState(surfacePos.up(2), Blocks.LANTERN.getDefaultState()
+            serverWorld.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.LANTERN.getDefaultState()
                     .with(Properties.HANGING, true), 3);
         }
 
-        serverWorld.setBlockState(surfacePos.up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(directionProperty, true), 3);
-        serverWorld.setBlockState(surfacePos.offset(offsetDirection).up(0), Blocks.SPRUCE_FENCE.getDefaultState(),             3);
-        serverWorld.setBlockState(surfacePos.offset(offsetDirection).up(1), Blocks.SPRUCE_FENCE.getDefaultState(),             3);
-        serverWorld.setBlockState(surfacePos.offset(offsetDirection).up(2), Blocks.SPRUCE_FENCE.getDefaultState(),             3);
-        serverWorld.setBlockState(surfacePos.offset(offsetDirection).up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(reverseDirectionProperty, true), 3);
+        serverWorld.setBlockState(surfacePos.up(3).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_FENCE.getDefaultState().with(directionProperty, true), 3);
+        serverWorld.setBlockState(surfacePos.up(0), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        serverWorld.setBlockState(surfacePos.up(1), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        serverWorld.setBlockState(surfacePos.up(2), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        serverWorld.setBlockState(surfacePos.up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(reverseDirectionProperty, true), 3);
     }
 
     private static int getCardinalRotationFromVector(Vec3i vector, boolean start) {

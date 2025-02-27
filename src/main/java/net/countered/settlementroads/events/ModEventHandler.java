@@ -23,7 +23,9 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
@@ -47,9 +49,6 @@ public class ModEventHandler {
 
         ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
             stopRecaching = false;
-            //if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
-            //    return; // Only in Overworld
-            //}
             RoadData roadData = getRoadData(serverWorld);
             if (roadData == null) {
                 return;
@@ -63,9 +62,6 @@ public class ModEventHandler {
             }
         });
         ServerWorldEvents.UNLOAD.register((minecraftServer, serverWorld) -> {
-            //if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
-            //    return;
-            //}
             LOGGER.info("Clearing road cache...");
             roadDataMap.clear();
             RoadFeature.roadSegmentsCache.clear();
@@ -75,6 +71,8 @@ public class ModEventHandler {
         ServerChunkEvents.CHUNK_GENERATE.register(ModEventHandler::clearRoad);
         ServerTickEvents.START_SERVER_TICK.register(server -> {
             server.getWorlds().forEach(serverWorld -> {
+                placeDecorations(serverWorld);
+                updateSigns(serverWorld);
                 if (ModConfig.loadRoadChunks){
                     loadRoadChunksCompletely(serverWorld);
                     if (!toRemove.isEmpty()) {
@@ -87,22 +85,20 @@ public class ModEventHandler {
                         }
                     }
                 }
-                placeDecorations(serverWorld);
-                updateSigns(serverWorld);
             });
         });
     }
 
     private static final ChunkTicketType<BlockPos> ROAD_TICKET = ChunkTicketType.create("road_ticket", Comparator.comparingLong(BlockPos::asLong));
     private static final Set<ChunkPos> toRemove = ConcurrentHashMap.newKeySet();
-
+    private static final int MAX_BLOCKS_PER_TICK = 1;
     private static void loadRoadChunksCompletely(ServerWorld serverWorld) {
         if (!RoadFeature.roadChunksCache.isEmpty()) {
             stopRecaching = true;
             RoadFeature.roadChunksCache.removeIf(chunkPos -> serverWorld.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, false) != null);
             Queue<ChunkPos> toLoadQueue = new ConcurrentLinkedQueue<>(RoadFeature.roadChunksCache);
             int processed = 0;
-            while (!toLoadQueue.isEmpty() /*&& processed < MAX_BLOCKS_PER_TICK*/) {
+            while (!toLoadQueue.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
                 ChunkPos roadChunkPos = toLoadQueue.poll();
                 if (roadChunkPos != null) {
                     serverWorld.getChunkManager().addTicket(ROAD_TICKET, roadChunkPos, 1, roadChunkPos.getStartPos());
@@ -113,17 +109,12 @@ public class ModEventHandler {
         }
     }
 
-    private static final int MAX_BLOCKS_PER_TICK = 1;
-
     private static void clearRoad(ServerWorld serverWorld, WorldChunk worldChunk) {
         if (RoadFeature.roadPostProcessingPositions.isEmpty()) {
             return;
         }
         for (BlockPos postProcessingPos : RoadFeature.roadPostProcessingPositions) {
             if (postProcessingPos != null) {
-                if (!worldChunk.getPos().equals(new ChunkPos(postProcessingPos))) {
-                    continue;
-                }
                 Block blockAbove = worldChunk.getBlockState(postProcessingPos.up()).getBlock();
                 Block blockAtPos = worldChunk.getBlockState(postProcessingPos).getBlock();
                 if (blockAbove == Blocks.SNOW) {
@@ -138,13 +129,19 @@ public class ModEventHandler {
     }
 
     private static void updateSigns(ServerWorld serverWorld) {
-        int processed = 0;
-        while (!RoadFeature.signPostProcessingPositions.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
-            Map.Entry<BlockPos, String> entry = RoadFeature.signPostProcessingPositions.poll();
-            if (entry != null) {
-                BlockPos signPos = entry.getKey();
-                String text = entry.getValue();
-
+        if (RoadFeature.signPostProcessingPositions.isEmpty()) {
+            return;
+        }
+        Iterator<Map.Entry<BlockPos, String>> iterator = RoadFeature.signPostProcessingPositions.iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos,String> signPostProcess = iterator.next();
+            if (signPostProcess != null) {
+                BlockPos signPos = signPostProcess.getKey();
+                String text = signPostProcess.getValue();
+                Chunk chunk = serverWorld.getChunk(new ChunkPos(signPos).x, new ChunkPos(signPos).z, ChunkStatus.FEATURES, false);
+                if (chunk == null) {
+                    continue;
+                }
                 BlockEntity entity = serverWorld.getBlockEntity(signPos);
                 if (entity instanceof HangingSignBlockEntity signEntity) {
                     SignText signText = signEntity.getText(true);
@@ -162,37 +159,49 @@ public class ModEventHandler {
                     signEntity.setText(signTextBack, false);
 
                     signEntity.markDirty();
+                    iterator.remove();
                 }
             }
-            processed++;
         }
     }
 
     private static void placeDecorations(ServerWorld serverWorld) {
-        if (RoadFeature.decorationPlacementPositions.isEmpty()) {
+        if (RoadFeature.roadDecorationPlacementPositions.isEmpty()) {
             return;
         }
-        for (Records.RoadDecoration roadDecoration : RoadFeature.decorationPlacementPositions) {
+        Iterator<Records.RoadDecoration> iterator = RoadFeature.roadDecorationPlacementPositions.iterator();
+        while (iterator.hasNext()) {
+            Records.RoadDecoration roadDecoration = iterator.next();
             if (roadDecoration != null) {
                 BlockPos placePos = roadDecoration.placePos();
+                Chunk chunk = serverWorld.getChunk(new ChunkPos(placePos).x, new ChunkPos(placePos).z, ChunkStatus.FEATURES, true);
+                if (chunk == null) {
+                    continue;
+                }
+                BlockPos surfacePos = placePos.withY(serverWorld.getChunk(placePos).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos.getX(), placePos.getZ())+1);
+                if (serverWorld.getBlockState(surfacePos.down()).isOf(Blocks.WATER)) {
+                    continue;
+                }
                 int centerBlockCount = roadDecoration.centerBlockCount();
-                List<BlockPos> middleBlockPositions = roadDecoration.middleBlockPositions();
+                String signText = roadDecoration.signText();
                 Vec3i orthogonalVector = roadDecoration.vector();
-                // place distance sign
-                if (centerBlockCount == 10){
-                    RoadStructures.placeDistanceSign(serverWorld, placePos, orthogonalVector, 1, true, String.valueOf(middleBlockPositions.size()));
-                }
-                if (centerBlockCount == middleBlockPositions.size()-10) {
-                    RoadStructures.placeDistanceSign(serverWorld, placePos, orthogonalVector, 1, false, String.valueOf(middleBlockPositions.size()));
-                }
+                boolean isStart = roadDecoration.isStart();
                 // place lantern
                 if (centerBlockCount % 60 == 0){
-                    RoadStructures.placeLantern(serverWorld, placePos, orthogonalVector, 1, true);
+                    RoadStructures.placeLantern(serverWorld, surfacePos, orthogonalVector, 1, true);
                 }
-                RoadFeature.decorationPlacementPositions.remove(roadDecoration);
+                // place distance sign
+                if (centerBlockCount == 10){
+                    RoadStructures.placeDistanceSign(serverWorld, surfacePos, orthogonalVector, 1, true, signText);
+                }
+                if (!isStart) {
+                    RoadStructures.placeDistanceSign(serverWorld, surfacePos, orthogonalVector, 1, false, signText);
+                }
+                iterator.remove();
             }
         }
     }
+
     public static RoadData getRoadData(ServerWorld serverWorld) {
         if (serverWorld.getDimension().hasCeiling()) {
             return null;

@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
@@ -47,8 +46,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static Set<BlockPos> pendingStructuresToCache = new HashSet<>();
     // Road post-processing positions
     public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
-    public static Queue<Map.Entry<BlockPos, String>> signPostProcessingPositions = new ConcurrentLinkedQueue<>();
-    public static Set<Records.RoadDecoration> decorationPlacementPositions = ConcurrentHashMap.newKeySet();
+    public static Set<Map.Entry<BlockPos, String>> signPostProcessingPositions = ConcurrentHashMap.newKeySet();
+    public static Set<Records.RoadDecoration> roadDecorationPlacementPositions = ConcurrentHashMap.newKeySet();
 
     private static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -82,7 +81,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             return false;
         }
         if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount && !ModConfig.loadRoadChunks) {
-            locateStructureDynamically(serverWorld, 400);
+            locateStructureDynamically(serverWorld, 300);
         }
 
         RoadCaching.cacheDynamicVillages(roadData, context);
@@ -94,16 +93,16 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     private void generateRoad(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
         StructureWorldAccess structureWorldAccess = context.getWorld();
         BlockPos genPos = context.getOrigin();
-        ChunkPos currentChunk = new ChunkPos(genPos);
+        ChunkPos currentChunkPos = new ChunkPos(genPos);
         if (roadChunksCache.isEmpty() && !ModEventHandler.stopRecaching) {
             RoadCaching.runCachingLogic(roadData, context);
         }
-        if (roadChunksCache.contains(currentChunk)){
-            runRoadLogic(currentChunk, structureWorldAccess);
+        if (roadChunksCache.contains(currentChunkPos)){
+            runRoadLogic(currentChunkPos, structureWorldAccess);
         }
     }
 
-    private void runRoadLogic(ChunkPos currentChunk, StructureWorldAccess structureWorldAccess) {
+    private void runRoadLogic(ChunkPos currentChunkPos, StructureWorldAccess structureWorldAccess) {
         int averagingRadius = 4;
 
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> roadEntry : roadSegmentsCache.entrySet()) {
@@ -124,9 +123,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 segmentIndex++;
                 if (segmentIndex == 1) continue;
 
-                ChunkPos middleChunk = new ChunkPos(currentPos);
+                ChunkPos middleChunkPos = new ChunkPos(currentPos);
 
-                if (currentChunk.equals(middleChunk)) {
+                if (currentChunkPos.equals(middleChunkPos)) {
                     List<Integer> heights = new ArrayList<>();
 
                     for (int j = -averagingRadius; j <= averagingRadius; j++) {
@@ -166,21 +165,16 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         );
         // orthogonal vector
         Vec3i orthogonalVector = new Vec3i(-directionVector.getZ(), 0, directionVector.getX());
-        boolean isStart = true;
-        if (segmentIndex == middleBlockPositions.size()-10) {
-            isStart = false;
-        }
+        boolean isStart = segmentIndex != middleBlockPositions.size() - 10;
         BlockPos shiftedPos = isStart
                 ? placePos.add(orthogonalVector.multiply(1))
                 : placePos.subtract(orthogonalVector.multiply(1));
-        BlockPos surfacePos = shiftedPos.withY(structureWorldAccess.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, shiftedPos.getX(), shiftedPos.getZ()));
-        if (!structureWorldAccess.getBlockState(surfacePos.down()).isOf(Blocks.WATER)) {
-            decorationPlacementPositions.add(new Records.RoadDecoration(surfacePos, orthogonalVector, segmentIndex, middleBlockPositions));
-        }
+
+        roadDecorationPlacementPositions.add(new Records.RoadDecoration(shiftedPos, orthogonalVector, segmentIndex, String.valueOf(middleBlockPositions.size()), isStart));
     }
 
     private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, List<BlockState> material, int natural, Random deterministicRandom, int centerBlockCount, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
-        double naturalBlockChance = 0.4;
+        double naturalBlockChance = 0.5;
         BlockPos surfacePos = placePos;
         if (natural == 1) {
             surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);

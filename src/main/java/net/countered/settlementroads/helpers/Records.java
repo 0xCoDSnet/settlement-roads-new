@@ -10,5 +10,5 @@ import java.util.List;
 public class Records {
 
     public record RoadAttributesData(int width, int natural, List<BlockState> material, Random deterministicRandom) {}
-    public record RoadDecoration(BlockPos placePos, Vec3i vector, int centerBlockCount, List<BlockPos> middleBlockPositions) {}
+    public record RoadDecoration(BlockPos placePos, Vec3i vector, int centerBlockCount, String signText, boolean isStart) {}
 }
