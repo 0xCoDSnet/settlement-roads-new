@@ -92,10 +92,10 @@ public class StructureLocator {
                                      serverWorld.locateStructure(structureTag, serverWorld.getSpawnPos(), 50, true);
         if (structureLocation != null) {
             LOGGER.info(ModConfig.structureToLocate + " found at " + "/tp " + structureLocation.getX() + " " + 100 + " " + structureLocation.getZ());
-            ModEventHandler.roadData.getStructureLocations().add(structureLocation);
-            ModEventHandler.roadData.markDirty();
+            ModEventHandler.getRoadData(serverWorld).getStructureLocations().add(structureLocation);
+            ModEventHandler.getRoadData(serverWorld).markDirty();
             // Add new village position to pending for cache
-            RoadFeature.pendingVillagesToCache.add(structureLocation);
+            RoadFeature.pendingStructuresToCache.add(structureLocation);
         }
     }
 
@@ -108,10 +108,10 @@ public class StructureLocator {
                         .locateStructure(serverWorld, registryEntryList, serverWorld.getSpawnPos(), 50, true);
         if (structureLocation != null) {
             LOGGER.info("Structure found at " + structureLocation);
-            ModEventHandler.roadData.getStructureLocations().add(structureLocation.getFirst());
-            ModEventHandler.roadData.markDirty();
+            ModEventHandler.getRoadData(serverWorld).getStructureLocations().add(structureLocation.getFirst());
+            ModEventHandler.getRoadData(serverWorld).markDirty();
             // Add new village position to pending for cache
-            RoadFeature.pendingVillagesToCache.add(structureLocation.getFirst());
+            RoadFeature.pendingStructuresToCache.add(structureLocation.getFirst());
         }
     }
 

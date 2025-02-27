@@ -16,6 +16,7 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.HangingSignBlockEntity;
 import net.minecraft.block.entity.SignText;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -38,7 +39,7 @@ public class ModEventHandler {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static RoadData roadData;
+    public static final Map<RegistryKey<World>, RoadData> roadDataMap = new ConcurrentHashMap<>();
 
     public static boolean stopRecaching = false;
 
@@ -46,10 +47,13 @@ public class ModEventHandler {
 
         ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
             stopRecaching = false;
-            if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
-                return; // Only in Overworld
+            //if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
+            //    return; // Only in Overworld
+            //}
+            RoadData roadData = getRoadData(serverWorld);
+            if (roadData == null) {
+                return;
             }
-            roadData = RoadData.getOrCreateRoadData(serverWorld);
             try {
                 if (roadData.getStructureLocations().size() < ModConfig.initialLocatingCount) {
                     StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
@@ -59,32 +63,33 @@ public class ModEventHandler {
             }
         });
         ServerWorldEvents.UNLOAD.register((minecraftServer, serverWorld) -> {
-            if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
-                return;
-            }
+            //if (!serverWorld.getRegistryKey().equals(World.OVERWORLD)) {
+            //    return;
+            //}
             LOGGER.info("Clearing road cache...");
+            roadDataMap.clear();
             RoadFeature.roadSegmentsCache.clear();
             RoadFeature.roadAttributesCache.clear();
             RoadFeature.roadChunksCache.clear();
         });
-        ServerChunkEvents.CHUNK_GENERATE.register((serverWorld, worldChunk) -> {
-            clearRoad(serverWorld, worldChunk);
-        });
+        ServerChunkEvents.CHUNK_GENERATE.register(ModEventHandler::clearRoad);
         ServerTickEvents.START_SERVER_TICK.register(server -> {
-            if (ModConfig.loadRoadChunks){
-                loadRoadChunksCompletely(server.getOverworld());
-                if (!toRemove.isEmpty()) {
-                    for (ChunkPos chunkPos : toRemove) {
-                        if (server.getOverworld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, false) != null) {
-                            server.getOverworld().getChunkManager().removeTicket(ROAD_TICKET, chunkPos, 1, chunkPos.getStartPos());
-                            RoadFeature.roadChunksCache.remove(chunkPos);
-                            toRemove.remove(chunkPos);
+            server.getWorlds().forEach(serverWorld -> {
+                if (ModConfig.loadRoadChunks){
+                    loadRoadChunksCompletely(serverWorld);
+                    if (!toRemove.isEmpty()) {
+                        for (ChunkPos chunkPos : toRemove) {
+                            if (server.getOverworld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, false) != null) {
+                                server.getOverworld().getChunkManager().removeTicket(ROAD_TICKET, chunkPos, 1, chunkPos.getStartPos());
+                                RoadFeature.roadChunksCache.remove(chunkPos);
+                                toRemove.remove(chunkPos);
+                            }
                         }
                     }
                 }
-            }
-            placeDecorations(server.getOverworld());
-            updateSigns(server.getOverworld());
+                placeDecorations(serverWorld);
+                updateSigns(serverWorld);
+            });
         });
     }
 
@@ -187,5 +192,12 @@ public class ModEventHandler {
                 RoadFeature.decorationPlacementPositions.remove(roadDecoration);
             }
         }
+    }
+    public static RoadData getRoadData(ServerWorld serverWorld) {
+        if (serverWorld.getDimension().hasCeiling()) {
+            return null;
+        }
+        return roadDataMap.computeIfAbsent(serverWorld.getRegistryKey(),
+                key -> RoadData.getOrCreateRoadData(serverWorld));
     }
 }

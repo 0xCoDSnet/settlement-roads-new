@@ -35,7 +35,7 @@ public class RoadCaching {
             if (type == -1) {
                 continue;
             }
-            BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
+            List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(deterministicRandom, context) : getRandomArtificialRoadMaterials(deterministicRandom, context);
 
             // Calculate a determined path
             List<BlockPos> waypoints = RoadMath.generateControlPoints(start, end, deterministicRandom);
@@ -65,7 +65,7 @@ public class RoadCaching {
         if (type == -1) {
             return; // No valid road type, skip
         }
-        BlockState material = (type == 1) ? getRandomNaturalMaterial(deterministicRandom, context) : getRandomArtificialMaterial(deterministicRandom, context);
+        List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(deterministicRandom, context) : getRandomArtificialRoadMaterials(deterministicRandom, context);
 
         // Generate road path
         List<BlockPos> waypoints = RoadMath.generateControlPoints(newVillage, closestVillage, deterministicRandom);
@@ -77,8 +77,8 @@ public class RoadCaching {
     }
 
     public static void cacheDynamicVillages(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        if (!RoadFeature.pendingVillagesToCache.isEmpty()) {
-            Iterator<BlockPos> iterator = RoadFeature.pendingVillagesToCache.iterator();
+        if (!RoadFeature.pendingStructuresToCache.isEmpty()) {
+            Iterator<BlockPos> iterator = RoadFeature.pendingStructuresToCache.iterator();
 
             while (iterator.hasNext()) {
                 BlockPos villagePos = iterator.next();
@@ -127,13 +127,13 @@ public class RoadCaching {
         return start.hashCode() ^ end.hashCode();
     }
 
-    private static BlockState getRandomNaturalMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getNaturalMaterials();
+    private static List<BlockState> getRandomNaturalRoadMaterials(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
+        List<List<BlockState>> materialsList = context.getConfig().getNaturalMaterials();
         return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
     }
 
-    private static BlockState getRandomArtificialMaterial(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockState> materialsList = context.getConfig().getArtificialMaterials();
+    private static List<BlockState> getRandomArtificialRoadMaterials(Random deterministicRandom, FeatureContext<RoadFeatureConfig> context) {
+        List<List<BlockState>> materialsList = context.getConfig().getArtificialMaterials();
         return materialsList.get(deterministicRandom.nextInt(materialsList.size()));
     }
 

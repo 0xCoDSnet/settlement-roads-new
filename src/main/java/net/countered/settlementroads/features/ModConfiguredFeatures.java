@@ -19,10 +19,16 @@ public class ModConfiguredFeatures {
         context.register(RoadFeature.ROAD_FEATURE_KEY,
                 new ConfiguredFeature<>(RoadFeature.ROAD_FEATURE,
                         new RoadFeatureConfig(
-                                List.of(Blocks.DIRT_PATH.getDefaultState(), Blocks.MUD_BRICKS.getDefaultState()),                                     // artificial
-                                List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState()),                                     // natural
+                                // artificial
+                                List.of(List.of(Blocks.MUD_BRICKS.getDefaultState(), Blocks.PACKED_MUD.getDefaultState()),
+                                        List.of(Blocks.POLISHED_ANDESITE.getDefaultState(), Blocks.STONE_BRICKS.getDefaultState()),
+                                        List.of(Blocks.STONE_BRICKS.getDefaultState(), Blocks.MOSSY_STONE_BRICKS.getDefaultState(), Blocks.CRACKED_STONE_BRICKS.getDefaultState())),
+                                // natural
+                                List.of(List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.ROOTED_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState()),
+                                        List.of(Blocks.COBBLESTONE.getDefaultState(), Blocks.MOSSY_COBBLESTONE.getDefaultState(), Blocks.CRACKED_STONE_BRICKS.getDefaultState()),
+                                        List.of(Blocks.DIRT_PATH.getDefaultState(), Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState())),
                                 List.of(3,4,5),                                                                                                           // width
-                                List.of(1,2,3,4,5,6,7,8,9)                                                                                                // quality
+                                List.of(1,2,3,4,5,6,7,8,9)                                                                                                // quality (not used)
                         )
                 )
         );

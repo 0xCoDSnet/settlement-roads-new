@@ -21,10 +21,8 @@ public class SettlementRoads implements ModInitializer {
 
 	// TODO
 	// IMPORTANT
-	// Lanterns
-	// Remove placed blocks from caches
-	// Add mixed stone roads / mud / dirt
-	// fix roads on snow icebergs
+	// fix artificial roads
+	// fix signs not spawning /floating
 
 	// OPTIONAL
 	// Possibly broken roads when recaching on world reload? / Sometimes for unknown reason when adding dynamically (possibly because of average calc)? fix: first cache roads generated on world load, then cache additional ones 1 by 1. Prerequisite: village locations need to be saved unordered persistent
@@ -32,6 +30,9 @@ public class SettlementRoads implements ModInitializer {
 	// Location lag reducing (async locator?)/ structure essentials / place instant roads?
 	// Bridges
 	// Tunnels
+	// fix roads on snow icebergs
+	// Remove placed blocks from caches
+	// fix locating in other dimensions
 
 	@Override
 	public void onInitialize() {

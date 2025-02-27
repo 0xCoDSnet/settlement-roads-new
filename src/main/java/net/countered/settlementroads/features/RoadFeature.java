@@ -44,7 +44,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     // Cache chunks where roads will be generated
     public static final Set<ChunkPos> roadChunksCache = ConcurrentHashMap.newKeySet();
     // Villages that need to be added to cache
-    public static Set<BlockPos> pendingVillagesToCache = new HashSet<>();
+    public static Set<BlockPos> pendingStructuresToCache = new HashSet<>();
     // Road post-processing positions
     public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
     public static Queue<Map.Entry<BlockPos, String>> signPostProcessingPositions = new ConcurrentLinkedQueue<>();
@@ -73,9 +73,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     @Override
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
-        RoadData roadData = ModEventHandler.roadData;
+        RoadData roadData = ModEventHandler.getRoadData(serverWorld);
         //RoadMath.estimateMemoryUsage();
-
+        if (roadData == null) {
+            return false;
+        }
         if (roadData.getStructureLocations().size() < 2) {
             return false;
         }
@@ -107,7 +109,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> roadEntry : roadSegmentsCache.entrySet()) {
             int roadId = roadEntry.getKey();
             Records.RoadAttributesData attributes = roadAttributesCache.get(roadId);
-            BlockState material = attributes.material();
+            List<BlockState> material = attributes.material();
             int natural = attributes.natural();
             Random deterministicRandom = attributes.deterministicRandom();
 
@@ -177,8 +179,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         }
     }
 
-    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, BlockState material, int natural, Random deterministicRandom, int centerBlockCount, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
-        double naturalBlockChance = 0.3;
+    private void placeOnSurface(StructureWorldAccess structureWorldAccess, BlockPos placePos, List<BlockState> material, int natural, Random deterministicRandom, int centerBlockCount, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
+        double naturalBlockChance = 0.4;
         BlockPos surfacePos = placePos;
         if (natural == 1) {
             surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
@@ -199,14 +201,14 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             }
             // place road
             if (natural == 0 || deterministicRandom.nextDouble() < naturalBlockChance) {
-                placeRoadBlock(structureWorldAccess, blockStateAtPos, surfacePos, material);
+                placeRoadBlock(structureWorldAccess, blockStateAtPos, surfacePos, material, deterministicRandom);
                 // add road block position to post process
                 roadPostProcessingPositions.add(surfacePos.down());
             }
         }
     }
 
-    private void placeRoadBlock(StructureWorldAccess structureWorldAccess, BlockState blockStateAtPos, BlockPos surfacePos, BlockState material) {
+    private void placeRoadBlock(StructureWorldAccess structureWorldAccess, BlockState blockStateAtPos, BlockPos surfacePos, List<BlockState> materials, Random deterministicRandom) {
         // If not water, just place the road
         if (!placeAllowedCheck(blockStateAtPos.getBlock())
                 || (!structureWorldAccess.getBlockState(surfacePos.down()).isOpaque()
@@ -216,8 +218,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         ){
             return;
         }
+        BlockState material = materials.get(deterministicRandom.nextInt(materials.size()));
         setBlockState(structureWorldAccess, surfacePos.down(), material);
-
 
         for (int i = 0; i < 4; i++) {
             if (!structureWorldAccess.getBlockState(surfacePos.up(i)).getBlock().equals(Blocks.AIR)) {
