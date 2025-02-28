@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "settlement-roads",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"name": "Countered's Settlement Roads",
 	"description": "A mod to generate roads between structures!",
 	"authors": [
@@ -27,7 +27,7 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.16.9",
-		"minecraft": "~1.21.4",
+		"minecraft": "~1.21.1",
 		"java": ">=21",
 		"fabric-api": "*"
 	},

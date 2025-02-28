@@ -67,7 +67,7 @@ public class StructureLocator {
             RegistryPredicateArgumentType.RegistryPredicate<Structure> predicate =
                     new RegistryPredicateArgumentType<>(structureRegistryKey).parse(reader);
 
-            Registry<Structure> registry = serverWorld.getRegistryManager().getOrThrow(RegistryKeys.STRUCTURE);
+            Registry<Structure> registry = serverWorld.getRegistryManager().get(RegistryKeys.STRUCTURE);
 
             RegistryEntryList<Structure> registryEntryList = (RegistryEntryList<Structure>) getStructureListForPredicate(predicate, registry)
                     .orElseThrow(() -> new IllegalArgumentException("Structure not found for identifier: " + structureId));
@@ -100,7 +100,8 @@ public class StructureLocator {
     }
 
     private static void addKeyStructurePersistent(ServerWorld serverWorld, RegistryEntryList<Structure> registryEntryList, @Nullable ServerPlayerEntity player) {
-        Pair<BlockPos, RegistryEntry<Structure>> structureLocation = player != null ? serverWorld.getChunkManager()
+        Pair<BlockPos, RegistryEntry<Structure>> structureLocation = player != null ?
+                serverWorld.getChunkManager()
                 .getChunkGenerator()
                 .locateStructure(serverWorld, registryEntryList, player.getBlockPos(), 50, true):
                 serverWorld.getChunkManager()
@@ -114,10 +115,9 @@ public class StructureLocator {
             RoadFeature.pendingStructuresToCache.add(structureLocation.getFirst());
         }
     }
-
     private static Optional<? extends RegistryEntryList.ListBacked<Structure>> getStructureListForPredicate(
             RegistryPredicateArgumentType.RegistryPredicate<Structure> predicate, Registry<Structure> structureRegistry
     ) {
-        return predicate.getKey().map(key -> structureRegistry.getOptional(key).map(entry -> RegistryEntryList.of(entry)), structureRegistry::getOptional);
+        return predicate.getKey().map(key -> structureRegistry.getEntry(key).map(entry -> RegistryEntryList.of(entry)), structureRegistry::getEntryList);
     }
 }
