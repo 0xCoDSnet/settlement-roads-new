@@ -12,11 +12,13 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.HangingSignBlockEntity;
 import net.minecraft.block.entity.SignText;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -169,7 +171,8 @@ public class ModEventHandler {
                     continue;
                 }
                 BlockPos surfacePos = placePos.withY(serverWorld.getChunk(placePos).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos.getX(), placePos.getZ())+1);
-                if (serverWorld.getBlockState(surfacePos.down()).isOf(Blocks.WATER)) {
+                BlockState blockStateBelow = serverWorld.getBlockState(surfacePos.down());
+                if (blockStateBelow.isOf(Blocks.WATER) || blockStateBelow.isOf(Blocks.LAVA) || blockStateBelow.isIn(BlockTags.LOGS) || RoadFeature.dontPlaceHere.contains(blockStateBelow.getBlock())) {
                     iterator.remove();
                     continue;
                 }

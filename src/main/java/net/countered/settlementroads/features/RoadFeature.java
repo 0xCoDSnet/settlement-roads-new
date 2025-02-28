@@ -49,7 +49,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static Set<Map.Entry<BlockPos, String>> signPostProcessingPositions = ConcurrentHashMap.newKeySet();
     public static Set<Records.RoadDecoration> roadDecorationPlacementPositions = ConcurrentHashMap.newKeySet();
 
-    private static final Set<Block> dontPlaceHere = new HashSet<>();
+    public static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
         dontPlaceHere.add(Blocks.PACKED_ICE);
         dontPlaceHere.add(Blocks.ICE);
