@@ -11,7 +11,7 @@ public class ModConfig extends MidnightConfig {
     public static String structureToLocate = "village";
 
     @Entry(category = "pre-generation", name = "Number of structures to locate on world load")
-    public static int initialLocatingCount = 5;
+    public static int initialLocatingCount = 7;
 
     @Entry(category = "pre-generation", name = "Load road chunks instantly")
     public static boolean loadRoadChunks = false;

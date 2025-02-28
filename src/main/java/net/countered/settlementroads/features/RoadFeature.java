@@ -103,7 +103,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     }
 
     private void runRoadLogic(ChunkPos currentChunkPos, StructureWorldAccess structureWorldAccess) {
-        int averagingRadius = 4;
+        int averagingRadius = 3;
 
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> roadEntry : roadSegmentsCache.entrySet()) {
             int roadId = roadEntry.getKey();
@@ -119,21 +119,19 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 BlockPos prevPos = middleBlockPositions.get(i - 2);
                 BlockPos currentPos = middleBlockPositions.get(i);
                 BlockPos nextPos = middleBlockPositions.get(i + 2);
-
+                List<Integer> heights = new ArrayList<>();
                 segmentIndex++;
                 if (segmentIndex == 1) continue;
 
                 ChunkPos middleChunkPos = new ChunkPos(currentPos);
 
                 if (currentChunkPos.equals(middleChunkPos)) {
-                    List<Integer> heights = new ArrayList<>();
 
-                    for (int j = -averagingRadius; j <= averagingRadius; j++) {
-                        int index = segmentIndex - 1 + j;
-                        if (index >= 0 && index < middleBlockPositions.size()) {
-                            BlockPos neighborPos = middleBlockPositions.get(index);
-                            BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, neighborPos);
-                            heights.add(surfacePos.getY());
+                    for (int j = i - averagingRadius; j <= i + averagingRadius; j++) {
+                        if (j >= 0 && j < middleBlockPositions.size()) {
+                            BlockPos neighborPos = middleBlockPositions.get(j);
+                            int neighborY = structureWorldAccess.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, neighborPos.getX(), neighborPos.getZ());
+                            heights.add(neighborY);
                         }
                     }
 
