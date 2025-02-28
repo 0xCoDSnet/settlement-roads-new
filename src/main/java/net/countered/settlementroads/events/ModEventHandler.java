@@ -31,9 +31,11 @@ import net.minecraft.world.chunk.WorldChunk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
@@ -69,21 +71,18 @@ public class ModEventHandler {
             RoadFeature.roadChunksCache.clear();
         });
         ServerChunkEvents.CHUNK_GENERATE.register(ModEventHandler::clearRoad);
-        ServerTickEvents.START_SERVER_TICK.register(server -> {
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
             server.getWorlds().forEach(serverWorld -> {
+                if (getRoadData(serverWorld) == null) {
+                    return;
+                };
+                if (getRoadData(serverWorld).getStructureLocations().isEmpty()) {
+                    return;
+                };
                 placeDecorations(serverWorld);
                 updateSigns(serverWorld);
                 if (ModConfig.loadRoadChunks){
                     loadRoadChunksCompletely(serverWorld);
-                    if (!toRemove.isEmpty()) {
-                        for (ChunkPos chunkPos : toRemove) {
-                            if (server.getOverworld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, false) != null) {
-                                server.getOverworld().getChunkManager().removeTicket(ROAD_TICKET, chunkPos, 1, chunkPos.getStartPos());
-                                RoadFeature.roadChunksCache.remove(chunkPos);
-                                toRemove.remove(chunkPos);
-                            }
-                        }
-                    }
                 }
             });
         });
@@ -92,20 +91,11 @@ public class ModEventHandler {
     private static final ChunkTicketType<BlockPos> ROAD_TICKET = ChunkTicketType.create("road_ticket", Comparator.comparingLong(BlockPos::asLong));
     private static final Set<ChunkPos> toRemove = ConcurrentHashMap.newKeySet();
     private static final int MAX_BLOCKS_PER_TICK = 1;
+
     private static void loadRoadChunksCompletely(ServerWorld serverWorld) {
         if (!RoadFeature.roadChunksCache.isEmpty()) {
             stopRecaching = true;
-            RoadFeature.roadChunksCache.removeIf(chunkPos -> serverWorld.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, false) != null);
-            Queue<ChunkPos> toLoadQueue = new ConcurrentLinkedQueue<>(RoadFeature.roadChunksCache);
-            int processed = 0;
-            while (!toLoadQueue.isEmpty() && processed < MAX_BLOCKS_PER_TICK) {
-                ChunkPos roadChunkPos = toLoadQueue.poll();
-                if (roadChunkPos != null) {
-                    serverWorld.getChunkManager().addTicket(ROAD_TICKET, roadChunkPos, 1, roadChunkPos.getStartPos());
-                    toRemove.add(roadChunkPos);
-                }
-                processed++;
-            }
+            RoadFeature.roadChunksCache.removeIf(chunkPos -> serverWorld.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FEATURES, true) != null);
         }
     }
 
@@ -180,6 +170,7 @@ public class ModEventHandler {
                 }
                 BlockPos surfacePos = placePos.withY(serverWorld.getChunk(placePos).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos.getX(), placePos.getZ())+1);
                 if (serverWorld.getBlockState(surfacePos.down()).isOf(Blocks.WATER)) {
+                    iterator.remove();
                     continue;
                 }
                 int centerBlockCount = roadDecoration.centerBlockCount();
