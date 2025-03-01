@@ -46,7 +46,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     public static Set<BlockPos> pendingStructuresToCache = new HashSet<>();
     // Road post-processing positions
     public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
-    public static Set<Map.Entry<BlockPos, String>> signPostProcessingPositions = ConcurrentHashMap.newKeySet();
     public static Set<Records.RoadDecoration> roadDecorationPlacementPositions = ConcurrentHashMap.newKeySet();
 
     public static final Set<Block> dontPlaceHere = new HashSet<>();
@@ -72,8 +71,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     @Override
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
+        StructureWorldAccess worldAccess = context.getWorld();
+
         RoadData roadData = ModEventHandler.getRoadData(serverWorld);
         //RoadMath.estimateMemoryUsage();
+
         if (roadData == null) {
             return false;
         }
@@ -87,6 +89,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         RoadCaching.cacheDynamicVillages(roadData, context);
 
         generateRoad(roadData, context);
+
+        RoadStructures.placeDecorations(worldAccess, context);
+
         return true;
     }
 
@@ -103,7 +108,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     }
 
     private void runRoadLogic(ChunkPos currentChunkPos, StructureWorldAccess structureWorldAccess) {
-        int averagingRadius = 3;
+        int averagingRadius = ModConfig.averagingRadius;
 
         for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> roadEntry : roadSegmentsCache.entrySet()) {
             int roadId = roadEntry.getKey();

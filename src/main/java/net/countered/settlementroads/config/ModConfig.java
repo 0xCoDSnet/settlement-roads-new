@@ -19,6 +19,9 @@ public class ModConfig extends MidnightConfig {
     @Entry(category = "roads", name = "Distance between buoys")
     public static int distanceBetweenBuoys = 30;
 
+    @Entry(category = "roads", name = "Artificial road averaging")
+    public static int averagingRadius = 3;
+
     @Entry(category = "roads", name = "Allow artificial roads")
     public static boolean allowArtificial = true;
 
