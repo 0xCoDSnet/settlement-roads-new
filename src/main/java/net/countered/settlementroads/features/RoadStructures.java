@@ -1,15 +1,24 @@
 package net.countered.settlementroads.features;
 
+import net.countered.settlementroads.helpers.Records;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.HangingSignBlockEntity;
+import net.minecraft.block.entity.SignText;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.state.property.Properties;
 import net.minecraft.state.property.Property;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3i;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.StructureWorldAccess;
+import net.minecraft.world.gen.feature.util.FeatureContext;
 
-import java.util.Map;
+import java.util.Iterator;
+import java.util.Objects;
 
 public class RoadStructures {
 
@@ -23,7 +32,7 @@ public class RoadStructures {
     }
 
     public static void placeDecoration(
-            ServerWorld serverWorld,
+            StructureWorldAccess structureWorldAccess,
             BlockPos surfacePos,
             Vec3i orthogonalVector,
             int distance,
@@ -44,21 +53,81 @@ public class RoadStructures {
         }
 
         if (type == DecorationType.SIGN) {
-            serverWorld.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_HANGING_SIGN.getDefaultState()
+            structureWorldAccess.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_HANGING_SIGN.getDefaultState()
                     .with(Properties.ROTATION, rotation)
                     .with(Properties.ATTACHED, true), 3 );
-            RoadFeature.signPostProcessingPositions.add(Map.entry(surfacePos.up(2).offset(offsetDirection.getOpposite()), signText));
-
+            updateSigns(structureWorldAccess, surfacePos.up(2).offset(offsetDirection.getOpposite()), signText);
         } else if (type == DecorationType.LANTERN) {
-            serverWorld.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.LANTERN.getDefaultState()
+            structureWorldAccess.setBlockState(surfacePos.up(2).offset(offsetDirection.getOpposite()), Blocks.LANTERN.getDefaultState()
                     .with(Properties.HANGING, true), 3);
         }
 
-        serverWorld.setBlockState(surfacePos.up(3).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_FENCE.getDefaultState().with(directionProperty, true), 3);
-        serverWorld.setBlockState(surfacePos.up(0), Blocks.SPRUCE_FENCE.getDefaultState(),3);
-        serverWorld.setBlockState(surfacePos.up(1), Blocks.SPRUCE_FENCE.getDefaultState(),3);
-        serverWorld.setBlockState(surfacePos.up(2), Blocks.SPRUCE_FENCE.getDefaultState(),3);
-        serverWorld.setBlockState(surfacePos.up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(reverseDirectionProperty, true), 3);
+        structureWorldAccess.setBlockState(surfacePos.up(3).offset(offsetDirection.getOpposite()), Blocks.SPRUCE_FENCE.getDefaultState().with(directionProperty, true), 3);
+        structureWorldAccess.setBlockState(surfacePos.up(0), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        structureWorldAccess.setBlockState(surfacePos.up(1), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        structureWorldAccess.setBlockState(surfacePos.up(2), Blocks.SPRUCE_FENCE.getDefaultState(),3);
+        structureWorldAccess.setBlockState(surfacePos.up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(reverseDirectionProperty, true), 3);
+    }
+
+    public static void placeDecorations(StructureWorldAccess structureWorldAccess, FeatureContext<RoadFeatureConfig> context) {
+        if (RoadFeature.roadDecorationPlacementPositions.isEmpty()) {
+            return;
+        }
+        Iterator<Records.RoadDecoration> iterator = RoadFeature.roadDecorationPlacementPositions.iterator();
+        while (iterator.hasNext()) {
+            Records.RoadDecoration roadDecoration = iterator.next();
+            if (roadDecoration != null) {
+                BlockPos placePos = roadDecoration.placePos();
+
+                BlockPos surfacePos = placePos.withY(structureWorldAccess.getChunk(placePos).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos.getX(), placePos.getZ())+1);
+
+                BlockState blockStateBelow = structureWorldAccess.getBlockState(surfacePos.down());
+                if (blockStateBelow.isOf(Blocks.WATER) || blockStateBelow.isOf(Blocks.LAVA) || blockStateBelow.isIn(BlockTags.LOGS) || RoadFeature.dontPlaceHere.contains(blockStateBelow.getBlock())) {
+                    iterator.remove();
+                    continue;
+                }
+                int centerBlockCount = roadDecoration.centerBlockCount();
+                String signText = roadDecoration.signText();
+                Vec3i orthogonalVector = roadDecoration.vector();
+                boolean isStart = roadDecoration.isStart();
+                // place lantern
+                if (centerBlockCount % 60 == 0){
+                    RoadStructures.placeLantern(structureWorldAccess, surfacePos, orthogonalVector, 1, true);
+                }
+                // place distance sign
+                if (centerBlockCount == 10){
+                    RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, true, signText);
+                }
+                if (!isStart) {
+                    RoadStructures.placeDistanceSign(structureWorldAccess, surfacePos, orthogonalVector, 1, false, signText);
+                }
+                iterator.remove();
+            }
+        }
+    }
+
+    private static void updateSigns(StructureWorldAccess structureWorldAccess, BlockPos surfacePos, String text) {
+        Objects.requireNonNull(structureWorldAccess.getServer()).execute( () -> {
+            BlockEntity signEntity = structureWorldAccess.getBlockEntity(surfacePos);
+            if (signEntity instanceof HangingSignBlockEntity signBlockEntity) {
+                signBlockEntity.setWorld(structureWorldAccess.toServerWorld());
+                SignText signText = signBlockEntity.getText(true);
+                signText = (signText.withMessage(0, Text.literal("----------")));
+                signText = (signText.withMessage(1, Text.literal("Next Village")));
+                signText = (signText.withMessage(2, Text.literal(text + "m")));
+                signText = (signText.withMessage(3, Text.literal("----------")));
+                signBlockEntity.setText(signText, true);
+
+                SignText signTextBack = signBlockEntity.getText(false);
+                signTextBack = signTextBack.withMessage(0, Text.of("----------"));
+                signTextBack = signTextBack.withMessage(1, Text.of("Welcome"));
+                signTextBack = signTextBack.withMessage(2, Text.of("traveller"));
+                signTextBack = signTextBack.withMessage(3, Text.of("----------"));
+                signBlockEntity.setText(signTextBack, false);
+
+                signBlockEntity.markDirty();
+            }
+        });
     }
 
     private static int getCardinalRotationFromVector(Vec3i vector, boolean start) {
@@ -79,24 +148,24 @@ public class RoadStructures {
     }
 
     public static void placeDistanceSign(
-            ServerWorld serverWorld,
+            StructureWorldAccess structureWorldAccess,
             BlockPos surfacePos,
             Vec3i orthogonalVector,
             int distance,
             boolean isStart,
             String signText
     ) {
-        placeDecoration(serverWorld, surfacePos, orthogonalVector, distance, isStart, DecorationType.SIGN, signText);
+        placeDecoration(structureWorldAccess, surfacePos, orthogonalVector, distance, isStart, DecorationType.SIGN, signText);
     }
 
     public static void placeLantern(
-            ServerWorld serverWorld,
+            StructureWorldAccess structureWorldAccess,
             BlockPos surfacePos,
             Vec3i orthogonalVector,
             int distance,
             boolean isStart
     ) {
-        placeDecoration(serverWorld, surfacePos, orthogonalVector, distance, isStart, DecorationType.LANTERN, null);
+        placeDecoration(structureWorldAccess, surfacePos, orthogonalVector, distance, isStart, DecorationType.LANTERN, null);
     }
 
     public static void placeWaypointMarker(StructureWorldAccess worldAccess, BlockPos surfacePos) {
