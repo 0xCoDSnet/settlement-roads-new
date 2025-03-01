@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "settlement-roads",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"name": "Countered's Settlement Roads",
 	"description": "A mod to generate roads between structures!",
 	"authors": [
