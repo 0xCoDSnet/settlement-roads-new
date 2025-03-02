@@ -1,10 +1,8 @@
 package net.countered.settlementroads.persistence;
 
 import net.countered.settlementroads.SettlementRoads;
-import net.minecraft.datafixer.DataFixTypes;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
-import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.PersistentState;
@@ -26,30 +24,20 @@ public class RoadData extends PersistentState {
     private final List<BlockPos> structureConnections = new ArrayList<BlockPos>();
     private final List<BlockPos> startEndPlacedPos = new ArrayList<BlockPos>();
 
-    private final ServerWorld world;
-
     public static RoadData getOrCreateRoadData(ServerWorld world) {
         return world.getPersistentStateManager().getOrCreate(
-                RoadData.getPersistentStateType(world),
+                RoadData::fromNbt,
+                RoadData::new,
                 "road_data"
         );
     }
 
-    private static PersistentState.Type<RoadData> getPersistentStateType(ServerWorld world) {
-        return new PersistentState.Type<>(
-                () -> new RoadData(world),
-                (nbt, registries) -> fromNbt(world, nbt),
-                DataFixTypes.CHUNK
-        );
-    }
+    public RoadData() {
 
-    public RoadData(ServerWorld world) {
-        this.world = world;
-        this.markDirty();
     }
 
     @Override
-    public NbtCompound writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registries) {
+    public NbtCompound writeNbt(NbtCompound nbt) {
         NbtList nbtList = new NbtList();
         for (BlockPos pos : structureLocations) {
             NbtCompound nbtCompound = new NbtCompound();
@@ -59,13 +47,12 @@ public class RoadData extends PersistentState {
             nbtList.add(nbtCompound);
         }
         nbt.put(STRUCTURE_LOCATION_KEY, nbtList);
-
         LOGGER.info("Wrote structure locations");
         return nbt;
     }
 
-    public static RoadData fromNbt(ServerWorld world, NbtCompound nbt) {
-        RoadData roadData = new RoadData(world);
+    public static RoadData fromNbt(NbtCompound nbt) {
+        RoadData roadData = new RoadData();
         NbtList nbtList = nbt.getList(STRUCTURE_LOCATION_KEY, 10);
 
         for (int i = 0; i < nbtList.size(); i++) {

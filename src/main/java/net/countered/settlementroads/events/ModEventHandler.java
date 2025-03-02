@@ -61,7 +61,7 @@ public class ModEventHandler {
             RoadFeature.roadAttributesCache.clear();
             RoadFeature.roadChunksCache.clear();
         });
-        ServerChunkEvents.CHUNK_GENERATE.register(ModEventHandler::clearRoad);
+        ServerChunkEvents.CHUNK_LOAD.register(ModEventHandler::clearRoad);
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             server.getWorlds().forEach(serverWorld -> {
                 if (getRoadData(serverWorld) == null) {

@@ -46,7 +46,7 @@ public class StructureLocator {
 
     private static void locateStructures(ServerWorld serverWorld, String structureId, int locateCount, Boolean isTag, boolean locateAtPlayer) throws CommandSyntaxException {
         if (isTag) {
-            TagKey<Structure> structureTag = TagKey.of(RegistryKeys.STRUCTURE, Identifier.of(structureId));
+            TagKey<Structure> structureTag = TagKey.of(RegistryKeys.STRUCTURE, new Identifier(structureId));
             for (int x = 0; x < locateCount; x++) {
                 serverWorld.getServer().execute(() -> {
                     if (locateAtPlayer) {
