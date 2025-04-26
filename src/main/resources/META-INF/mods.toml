@@ -1,0 +1,34 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="CC0-1.0"
+
+[properties]
+"connector:placeholder"=true
+
+[[mods]]
+modId="settlement_roads"
+version="1.0.1"
+displayName="Countered's Settlement Roads"
+authors="Countered"
+description='''A mod that generates roads between villages'''
+
+[[dependencies.settlement_roads]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.settlement_roads]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.settlement_roads]]
+modId="connector"
+mandatory=true
+versionRange="*"
+ordering="NONE"
+side="BOTH"
