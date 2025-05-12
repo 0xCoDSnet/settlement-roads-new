@@ -8,7 +8,7 @@ public class ModConfig extends MidnightConfig {
     public static int maxLocatingCount = 100;
 
     @Entry(category = "structures", name = "Structure to locate")
-    public static String structureToLocate = "village";
+    public static String structureToLocate = "#minecraft:village";
 
     @Entry(category = "pre-generation", name = "Number of structures to locate on world load")
     public static int initialLocatingCount = 7;

@@ -1,4 +1,4 @@
-package net.countered.settlementroads.features;
+package net.countered.settlementroads.features.roadlogic;
 
 import net.countered.settlementroads.SettlementRoads;
 import net.minecraft.util.math.BlockPos;

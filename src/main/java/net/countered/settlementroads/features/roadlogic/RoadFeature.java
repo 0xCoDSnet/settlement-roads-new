@@ -1,10 +1,10 @@
-package net.countered.settlementroads.features;
+package net.countered.settlementroads.features.roadlogic;
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.events.ModEventHandler;
+import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
@@ -273,11 +273,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         }
         else {
             LOGGER.info("Locating structure dynamically");
-            try {
+            serverWorld.getServer().execute(() -> {
                 StructureLocator.locateConfiguredStructure(serverWorld, 1, true);
-            } catch (CommandSyntaxException e) {
-                throw new RuntimeException(e);
-            }
+            });
             chunksForLocatingCounter = 1;
         }
     }

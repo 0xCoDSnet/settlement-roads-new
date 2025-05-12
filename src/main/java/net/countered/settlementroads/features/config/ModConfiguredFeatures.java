@@ -1,6 +1,7 @@
-package net.countered.settlementroads.features;
+package net.countered.settlementroads.features.config;
 
 import net.countered.settlementroads.SettlementRoads;
+import net.countered.settlementroads.features.roadlogic.RoadFeature;
 import net.minecraft.block.Blocks;
 import net.minecraft.registry.Registerable;
 import net.minecraft.world.gen.feature.ConfiguredFeature;

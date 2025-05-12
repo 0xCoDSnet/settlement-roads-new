@@ -1,9 +1,8 @@
 package net.countered.settlementroads.events;
 
 
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.countered.settlementroads.config.ModConfig;
-import net.countered.settlementroads.features.RoadFeature;
+import net.countered.settlementroads.features.roadlogic.RoadFeature;
 import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.RoadData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
@@ -46,12 +45,8 @@ public class ModEventHandler {
             if (roadData == null) {
                 return;
             }
-            try {
-                if (roadData.getStructureLocations().size() < ModConfig.initialLocatingCount) {
-                    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
-                }
-            } catch (CommandSyntaxException e) {
-                throw new RuntimeException(e);
+            if (roadData.getStructureLocations().size() < ModConfig.initialLocatingCount) {
+                StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
             }
         });
         ServerWorldEvents.UNLOAD.register((minecraftServer, serverWorld) -> {

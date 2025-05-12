@@ -2,7 +2,7 @@ package net.countered.settlementroads;
 
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.events.ModEventHandler;
-import net.countered.settlementroads.features.RoadFeature;
+import net.countered.settlementroads.features.roadlogic.RoadFeature;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
