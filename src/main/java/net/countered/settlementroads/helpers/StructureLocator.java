@@ -7,8 +7,8 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.datafixers.util.Pair;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
-import net.countered.settlementroads.events.ModEventHandler;
 import net.countered.settlementroads.features.roadlogic.RoadFeature;
+import net.countered.settlementroads.persistence.WorldDataAttachment;
 import net.minecraft.command.argument.RegistryPredicateArgumentType;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -68,8 +68,7 @@ public class StructureLocator {
         } else {
             BlockPos structureLocation = pair.getFirst();
             LOGGER.info("Structure found at " + structureLocation);
-            ModEventHandler.getRoadData(serverWorld).getStructureLocations().add(structureLocation);
-            ModEventHandler.getRoadData(serverWorld).markDirty();
+            serverWorld.getAttached(WorldDataAttachment.VILLAGE_LOCATIONS).addVillage(structureLocation);
             // Add new village position to pending for cache
             RoadFeature.pendingStructuresToCache.add(structureLocation);
         }

@@ -173,5 +173,4 @@ public class RoadStructures {
         worldAccess.setBlockState(surfacePos, Blocks.COBBLESTONE_WALL.getDefaultState(), 3);
         worldAccess.setBlockState(surfacePos.up(), Blocks.TORCH.getDefaultState(), 3);
     }
-
 }

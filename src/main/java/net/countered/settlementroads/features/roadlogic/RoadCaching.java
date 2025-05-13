@@ -3,7 +3,6 @@ package net.countered.settlementroads.features.roadlogic;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
-import net.countered.settlementroads.persistence.RoadData;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
@@ -13,12 +12,11 @@ import java.util.*;
 
 public class RoadCaching {
 
-    public static void runCachingLogic(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockPos> villages = roadData.getStructureLocations();
+    public static void runCachingLogic(List<BlockPos> villageLocations, FeatureContext<RoadFeatureConfig> context) {
         Map<BlockPos, BlockPos> closestVillageMap = new HashMap<>();
 
-        for (BlockPos village : villages) {
-            BlockPos closestVillage = findClosestVillage(village, villages);
+        for (BlockPos village : villageLocations) {
+            BlockPos closestVillage = findClosestVillage(village, villageLocations);
             if (closestVillage != null) {
                 closestVillageMap.put(village, closestVillage);
             }
@@ -47,11 +45,10 @@ public class RoadCaching {
         }
     }
 
-    public static void addNewVillageToCache(BlockPos newVillage, RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
-        List<BlockPos> existingVillages = roadData.getStructureLocations();
+    public static void addNewVillageToCache(BlockPos newVillage, List<BlockPos> villageLocations, FeatureContext<RoadFeatureConfig> context) {
 
         // Find the closest existing village to the new village
-        BlockPos closestVillage = findClosestVillage(newVillage, existingVillages);
+        BlockPos closestVillage = findClosestVillage(newVillage, villageLocations);
 
         if (closestVillage == null) {
             return; // No existing villages to connect to
@@ -77,13 +74,13 @@ public class RoadCaching {
         RoadFeature.roadSegmentsCache.put(roadId, roadPath);
     }
 
-    public static void cacheDynamicVillages(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
+    public static void cacheDynamicVillages(List<BlockPos> villageLocations, FeatureContext<RoadFeatureConfig> context) {
         if (!RoadFeature.pendingStructuresToCache.isEmpty()) {
             Iterator<BlockPos> iterator = RoadFeature.pendingStructuresToCache.iterator();
 
             while (iterator.hasNext()) {
                 BlockPos villagePos = iterator.next();
-                RoadCaching.addNewVillageToCache(villagePos, roadData, context);
+                RoadCaching.addNewVillageToCache(villagePos, villageLocations, context);
                 iterator.remove(); // Remove from the Set after caching
             }
         }

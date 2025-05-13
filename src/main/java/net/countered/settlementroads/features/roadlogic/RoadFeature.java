@@ -7,7 +7,8 @@ import net.countered.settlementroads.events.ModEventHandler;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureLocator;
-import net.countered.settlementroads.persistence.RoadData;
+import net.countered.settlementroads.persistence.VillageLocationData;
+import net.countered.settlementroads.persistence.WorldDataAttachment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -73,34 +74,34 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         StructureWorldAccess worldAccess = context.getWorld();
 
-        RoadData roadData = ModEventHandler.getRoadData(serverWorld);
+        VillageLocationData villageLocationData = serverWorld.getAttached(WorldDataAttachment.VILLAGE_LOCATIONS);
+        if (villageLocationData == null) {
+            return false;
+        }
+        List<BlockPos> villageLocations = villageLocationData.getVillages();
         //RoadMath.estimateMemoryUsage();
-
-        if (roadData == null) {
+        if (villageLocations == null || villageLocations.size() < 2) {
             return false;
         }
-        if (roadData.getStructureLocations().size() < 2) {
-            return false;
-        }
-        if (roadData.getStructureLocations().size() < ModConfig.maxLocatingCount && !ModConfig.loadRoadChunks) {
+        if (villageLocations.size() < ModConfig.maxLocatingCount && !ModConfig.loadRoadChunks) {
             locateStructureDynamically(serverWorld, 300);
         }
 
-        RoadCaching.cacheDynamicVillages(roadData, context);
+        RoadCaching.cacheDynamicVillages(villageLocations, context);
 
-        generateRoad(roadData, context);
+        generateRoad(villageLocations, context);
 
         RoadStructures.placeDecorations(worldAccess, context);
 
         return true;
     }
 
-    private void generateRoad(RoadData roadData, FeatureContext<RoadFeatureConfig> context) {
+    private void generateRoad(List<BlockPos> villageLocations, FeatureContext<RoadFeatureConfig> context) {
         StructureWorldAccess structureWorldAccess = context.getWorld();
         BlockPos genPos = context.getOrigin();
         ChunkPos currentChunkPos = new ChunkPos(genPos);
         if (roadChunksCache.isEmpty() && !ModEventHandler.stopRecaching) {
-            RoadCaching.runCachingLogic(roadData, context);
+            RoadCaching.runCachingLogic(villageLocations, context);
         }
         if (roadChunksCache.contains(currentChunkPos)){
             runRoadLogic(currentChunkPos, structureWorldAccess);
