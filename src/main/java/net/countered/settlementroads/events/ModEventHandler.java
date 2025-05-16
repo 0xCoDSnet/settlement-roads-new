@@ -1,12 +1,10 @@
 package net.countered.settlementroads.events;
 
 
-import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.roadlogic.RoadFeature;
-import net.countered.settlementroads.helpers.StructureLocator;
-import net.countered.settlementroads.persistence.VillageLocationData;
-import net.countered.settlementroads.persistence.WorldDataAttachment;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.countered.settlementroads.helpers.Records;
+import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
@@ -17,32 +15,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
 public class ModEventHandler {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-
-    public static boolean stopRecaching = false;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
     public static void register() {
 
         ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
-            VillageLocationData villageLocationData = serverWorld.getAttachedOrCreate(WorldDataAttachment.VILLAGE_LOCATIONS, () -> new VillageLocationData(new ArrayList<>()));
-            List<BlockPos> villageLocations = villageLocationData.getVillages();
-            if (villageLocations == null || villageLocations.size() < ModConfig.initialLocatingCount) {
-                StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
-            }
+            Records.StructureLocationData villageLocationData = serverWorld.getAttachedOrCreate(WorldDataAttachment.STRUCTURE_LOCATIONS, () -> new Records.StructureLocationData(new ArrayList<>()));
+
+            //List<BlockPos> villageLocations = villageLocationData.structureLocations();
+            //if (villageLocations == null || villageLocations.size() < ModConfig.initialLocatingCount) {
+            //    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
+            //}
         });
-        ServerWorldEvents.UNLOAD.register((minecraftServer, serverWorld) -> {
-            LOGGER.info("Clearing road cache...");
-            RoadFeature.roadSegmentsCache.clear();
-            RoadFeature.roadAttributesCache.clear();
-            RoadFeature.roadChunksCache.clear();
+        ServerTickEvents.END_WORLD_TICK.register((serverWorld) -> {
+
         });
-        ServerChunkEvents.CHUNK_LOAD.register(ModEventHandler::clearRoad);
+
     }
 
     private static void clearRoad(ServerWorld serverWorld, WorldChunk worldChunk) {

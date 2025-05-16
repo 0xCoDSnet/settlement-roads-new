@@ -2,14 +2,13 @@ package net.countered.settlementroads.features.roadlogic;
 
 import net.countered.settlementroads.SettlementRoads;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class RoadMath {
+public class RoadPathingCalculator {
 
     private static final Set<BlockPos> widthPositionsCache = new HashSet<>();
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
@@ -35,7 +34,6 @@ public class RoadMath {
                     for (BlockPos middlePos : linePositions) {
                         if (!middlePositions.contains(middlePos)) {
                             middlePositions.add(middlePos);
-                            RoadFeature.roadChunksCache.add(new ChunkPos(middlePos));
 
                             // Generate road width
                             roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
@@ -93,7 +91,6 @@ public class RoadMath {
             }
             widthPositionsCache.add(widthBlockPos);
             segmentWidthPositions.add(widthBlockPos);
-            RoadFeature.roadChunksCache.add(new ChunkPos(widthBlockPos));
         }
         return segmentWidthPositions;
     }
@@ -142,7 +139,8 @@ public class RoadMath {
     }
 
 
-    public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end, Random random) {
+    public static List<BlockPos> generateControlPoints(BlockPos start, BlockPos end) {
+        Random random = Random.create();
         List<BlockPos> controlPoints = new ArrayList<>();
         // Calculate vectors from start to end
         double dx = end.getX() - start.getX();
@@ -181,17 +179,5 @@ public class RoadMath {
         }
         controlPoints.add(adjustedEnd);
         return controlPoints;
-    }
-
-    // debugging
-    public static void estimateMemoryUsage() {
-
-        for (Map.Entry<Integer, Map<BlockPos, Set<BlockPos>>> entry : RoadFeature.roadSegmentsCache.entrySet()) {
-            LOGGER.info("entry " + entry.getValue().size());
-        }
-
-        LOGGER.info("chunkscache"+RoadFeature.roadChunksCache.size());
-        LOGGER.info("roadsegmentscache"+RoadFeature.roadSegmentsCache.size());
-        LOGGER.info("roadattributescache"+RoadFeature.roadAttributesCache.size());
     }
 }
