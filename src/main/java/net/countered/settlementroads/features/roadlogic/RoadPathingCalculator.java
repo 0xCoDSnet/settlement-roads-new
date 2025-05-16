@@ -1,6 +1,7 @@
 package net.countered.settlementroads.features.roadlogic;
 
 import net.countered.settlementroads.SettlementRoads;
+import net.countered.settlementroads.helpers.Records;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import org.slf4j.Logger;
@@ -13,8 +14,10 @@ public class RoadPathingCalculator {
     private static final Set<BlockPos> widthPositionsCache = new HashSet<>();
     public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
-    public static Map<BlockPos, Set<BlockPos>> calculateSplinePath(List<BlockPos> controlPoints, int width) {
-        Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>(); // Has to be linked
+    public static List<Records.RoadSegmentPlacement> calculateSplinePath(List<BlockPos> controlPoints, int width) {
+        List<Records.RoadSegmentPlacement> roadSegmentPlacements = new ArrayList<>();
+        int segmentIndex = 0; // To track segment indices
+
         Set<BlockPos> middlePositions = new HashSet<>();  // Track middle blocks
 
         for (int i = 0; i < controlPoints.size() - 1; i++) {
@@ -31,38 +34,28 @@ public class RoadPathingCalculator {
                 if (lastSplinePos != null) {
                     // Use Bresenham to ensure continuous placement
                     List<BlockPos> linePositions = getStraightLine(lastSplinePos, nextSplinePos);
+                    List<BlockPos> segmentPositions = new ArrayList<>(); // Store positions for this segment
+
                     for (BlockPos middlePos : linePositions) {
                         if (!middlePositions.contains(middlePos)) {
                             middlePositions.add(middlePos);
+                            segmentPositions.addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
+                        } else {
+                            segmentPositions.addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
+                        }
+                    }
 
-                            // Generate road width
-                            roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
-                        }
-                        else {
-                            roadSegments.get(middlePos).addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
-                        }
+                    // Add segment to roadSegmentPlacements
+                    if (!segmentPositions.isEmpty()) {
+                        roadSegmentPlacements.add(new Records.RoadSegmentPlacement(segmentIndex++, nextSplinePos, segmentPositions));
                     }
                 }
                 lastSplinePos = nextSplinePos;
             }
         }
-        Map<BlockPos, Set<BlockPos>> toRemove = new HashMap<>();
-        for (BlockPos middlePos : roadSegments.keySet()) {
-            Set<BlockPos> testWidthList = new HashSet<>();
-            for (BlockPos widthPos : roadSegments.get(middlePos)) {
-                if (middlePositions.contains(widthPos)) {
-                    testWidthList.add(widthPos);
-                }
-            }
-            toRemove.put(middlePos, testWidthList);
-        }
-        for (BlockPos middlePos : toRemove.keySet()) {
-            for (BlockPos widthPos : toRemove.get(middlePos)) {
-                roadSegments.get(middlePos).remove(widthPos);
-            }
-        }
+
         widthPositionsCache.clear();
-        return roadSegments;
+        return roadSegmentPlacements;
     }
 
     private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width) {

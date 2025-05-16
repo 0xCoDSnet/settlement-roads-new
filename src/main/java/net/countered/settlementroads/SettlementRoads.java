@@ -30,6 +30,7 @@ public class SettlementRoads implements ModInitializer {
 	// Artificial roads look bad
 	// Make caching save placement locations in chunk attachments
 	// Place road blocks per chunk via attachment
+	// Make road type return enum
 
 	// Add:
 	//
@@ -48,7 +49,6 @@ public class SettlementRoads implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Initializing Settlement Roads...");
 		WorldDataAttachment.registerWorldDataAttachment();
-		ChunkDataAttachment.registerChunkDataAttachment();
 		ModConfig.init(MOD_ID, ModConfig.class);
 		RoadFeatureRegistry.registerFeatures();
 		ModEventHandler.register();

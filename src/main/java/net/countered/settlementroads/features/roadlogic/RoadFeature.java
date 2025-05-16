@@ -5,6 +5,7 @@ import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
+import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -67,48 +68,37 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             return false;
         }
         List<BlockPos> villageLocations = structureLocationData.structureLocations();
-        //System.out.println("villagelocationsize " +villageLocations.size() );
-        if (villageLocations == null || villageLocations.size() < ModConfig.maxLocatingCount) {
-            chunksForLocatingCounter++;
-            if (chunksForLocatingCounter > 300) {
-                List<Records.VillageConnection> connectionList= serverWorld.getAttached(WorldDataAttachment.CONNECTED_VILLAGES);
-                if (connectionList != null) {
-                    System.out.println(connectionList.size());
-                }
-                serverWorld.getServer().execute(() -> {
-                    StructureConnector.generateNewConnections(serverWorld);
-                    new Road(structureWorldAccess, context).generateRoad();
-                } );
-                chunksForLocatingCounter = 1;
-            }
-        }
-        generateRoad(structureWorldAccess, villageLocations, context);
+        tryFindNewVillageConnection(villageLocations, serverWorld);
+        runRoadLogic(structureWorldAccess, context);
         RoadStructures.placeDecorations(structureWorldAccess, context);
         return true;
     }
 
-    private void generateRoad(StructureWorldAccess structureWorldAccess, List<BlockPos> villageLocations, FeatureContext<RoadFeatureConfig> context) {
-        BlockPos genPos = context.getOrigin();
-        ChunkPos currentChunkPos = new ChunkPos(genPos);
-        List<Records.RoadData> roadChunkData = structureWorldAccess.getChunk(genPos).getAttached(ChunkDataAttachment.ROAD_CHUNK_DATA_LIST);
-        if (roadChunkData == null) {
-            return;
+    private void tryFindNewVillageConnection(List<BlockPos> villageLocations, ServerWorld serverWorld) {
+        if (villageLocations == null || villageLocations.size() < ModConfig.maxLocatingCount) {
+            chunksForLocatingCounter++;
+            if (chunksForLocatingCounter > 300) {
+                List<Records.VillageConnection> connectionList= serverWorld.getAttached(WorldDataAttachment.CONNECTED_VILLAGES);
+                serverWorld.getServer().execute(() -> {
+                    StructureConnector.generateNewConnections(serverWorld);
+                });
+                chunksForLocatingCounter = 1;
+            }
         }
-        System.out.println("generating abc 2");
-        runRoadLogic(currentChunkPos, structureWorldAccess, roadChunkData);
     }
 
-    private void runRoadLogic(ChunkPos currentChunkPos, StructureWorldAccess structureWorldAccess, List<Records.RoadData> roadChunkDataList) {
+    private void runRoadLogic(StructureWorldAccess structureWorldAccess, FeatureContext<RoadFeatureConfig> context) {
         int averagingRadius = ModConfig.averagingRadius;
-
-        for (Records.RoadData data : roadChunkDataList) {
-            int width = data.width();
+        List<Records.RoadData> roadDataList = structureWorldAccess.toServerWorld().getAttached(WorldDataAttachment.ROAD_DATA_LIST);
+        if (roadDataList == null) {
+            return;
+        }
+        for (Records.RoadData data : roadDataList) {
             int roadType = data.roadType();
             List<BlockState> materials = data.materials();
             List<Records.RoadSegmentPlacement> segmentList = data.roadSegmentList();
 
-            for (int i = 0; i < segmentList.size()-1; i++) {
-                Records.RoadSegmentPlacement segment = segmentList.get(i);
+            for (Records.RoadSegmentPlacement segment : segmentList) {
 
                 List<BlockPos> widthPositions = segment.positions();
 
@@ -116,6 +106,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 BlockPos middlePos = segment.middlePos();
 
                 ChunkPos middleChunkPos = new ChunkPos(middlePos);
+                ChunkPos currentChunkPos = new ChunkPos(context.getOrigin());
 
                 if (currentChunkPos.equals(middleChunkPos)) {
 
@@ -135,7 +126,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     }
 
                     placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, Random.create(), segmentIndex, null, null, null);
-                    addDecoration(structureWorldAccess, averagedPos, segmentIndex, null, null, null);
+                    //addDecoration(structureWorldAccess, averagedPos, segmentIndex, null, null, null);
                 }
             }
         }
@@ -232,17 +223,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             setBlockState(structureWorldAccess, belowPos2, Blocks.DIRT.getDefaultState());
             setBlockState(structureWorldAccess, belowPos3, Blocks.DIRT.getDefaultState());
         }
-    }
-
-    private int placeBridge(Map.Entry<BlockPos, Integer> blockPosEntry, StructureWorldAccess structureWorldAccess) {
-        BlockPos placePos = blockPosEntry.getKey();
-        BlockPos surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
-        BlockState blockStateAtPos = structureWorldAccess.getBlockState(surfacePos.down());
-        if (blockStateAtPos.isOf(Blocks.WATER)) {
-            setBlockState(structureWorldAccess, surfacePos, Blocks.OAK_PLANKS.getDefaultState());
-            return 0;
-        }
-        return -1;
     }
 
     private boolean placeAllowedCheck (Block blockToCheck) {

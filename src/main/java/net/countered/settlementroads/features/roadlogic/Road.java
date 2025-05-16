@@ -5,44 +5,41 @@ import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
 import net.minecraft.block.BlockState;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.world.StructureWorldAccess;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.feature.util.FeatureContext;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class Road {
-    FeatureContext<RoadFeatureConfig> context;
-    StructureWorldAccess worldAccess;
 
-    public Road(StructureWorldAccess worldAccess, FeatureContext<RoadFeatureConfig> context) {
-        this.worldAccess = worldAccess;
-        this.context = context;
+    ServerWorld serverWorld;
+    Records.VillageConnection villageConnection;
+    RoadFeatureConfig context;
+
+    public Road(ServerWorld serverWorld, Records.VillageConnection villageConnection, RoadFeatureConfig config) {
+        this.serverWorld = serverWorld;
+        this.villageConnection = villageConnection;
+        this.context = config;
     }
 
     public void generateRoad(){
         Random random = Random.create();
-        int width = getRandomWidth(random, context.getConfig());
+        int width = getRandomWidth(random, context);
         int type = allowedRoadTypes(random);
         // if all road types are disabled in config
         if (type == -1) {
             return;
         }
-        List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(random, context.getConfig()) : getRandomArtificialRoadMaterials(random, context.getConfig());
+        List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(random, context) : getRandomArtificialRoadMaterials(random, context);
 
-        List<Records.VillageConnection> connectedVillages = worldAccess.toServerWorld().getAttached(WorldDataAttachment.CONNECTED_VILLAGES);
-        BlockPos start = connectedVillages.get(connectedVillages.size()-1).from();
-        BlockPos end = connectedVillages.get(connectedVillages.size()-1).to();
+        BlockPos start = villageConnection.from();
+        BlockPos end = villageConnection.to();
 
         List<BlockPos> waypoints = RoadPathingCalculator.generateControlPoints(start, end);
-        Map<BlockPos, Set<BlockPos>> roadPath = RoadPathingCalculator.calculateSplinePath(waypoints, width);
-        addRoadToChunks(roadPath, width, type, material, worldAccess);
+        List<Records.RoadSegmentPlacement> roadSegmentPlacements = RoadPathingCalculator.calculateSplinePath(waypoints, width);
+        serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new).add(new Records.RoadData(width, type, material, roadSegmentPlacements));
     }
 
     private static int allowedRoadTypes(Random deterministicRandom) {
@@ -77,29 +74,5 @@ public class Road {
     private static int getRandomWidth(Random random, RoadFeatureConfig config) {
         List<Integer> widthList = config.getWidths();
         return widthList.get(random.nextInt(widthList.size()));
-    }
-
-    private void addRoadToChunks(Map<BlockPos, Set<BlockPos>> roadPath, int width, int type, List<BlockState> material, StructureWorldAccess worldAccess) {
-        int segmentCounter = 0;
-
-        for (Map.Entry<BlockPos, Set<BlockPos>> entry : roadPath.entrySet()) {
-            BlockPos middlePos = entry.getKey();
-            Set<BlockPos> blockPositions = entry.getValue();
-
-            ChunkPos chunkPos = new ChunkPos(middlePos);
-            int finalSegmentCounter = segmentCounter;
-
-            Chunk chunk = worldAccess.toServerWorld().getChunk(chunkPos.x, chunkPos.z);
-            List<Records.RoadData> roadDataList = chunk.getAttachedOrCreate(ChunkDataAttachment.ROAD_CHUNK_DATA_LIST, List::of);
-            List<Records.RoadData> mutableList = new ArrayList<>(roadDataList);
-            List<Records.RoadSegmentPlacement> placements = List.of(
-                    new Records.RoadSegmentPlacement(finalSegmentCounter, middlePos, new ArrayList<>(blockPositions))
-            );
-            Records.RoadData data = new Records.RoadData(width, type, material, placements);
-            mutableList.add(data);
-            chunk.setAttached(ChunkDataAttachment.ROAD_CHUNK_DATA_LIST, mutableList);
-
-            segmentCounter++;
-        }
     }
 }

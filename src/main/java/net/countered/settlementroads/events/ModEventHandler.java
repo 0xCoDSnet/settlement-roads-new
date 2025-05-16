@@ -1,16 +1,16 @@
 package net.countered.settlementroads.events;
 
 
+import net.countered.settlementroads.features.config.RoadFeatureConfig;
+import net.countered.settlementroads.features.roadlogic.Road;
 import net.countered.settlementroads.features.roadlogic.RoadFeature;
 import net.countered.settlementroads.helpers.Records;
+import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.world.gen.feature.ConfiguredFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,28 +32,22 @@ public class ModEventHandler {
             //    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
             //}
         });
+
         ServerTickEvents.END_WORLD_TICK.register((serverWorld) -> {
+            if (!StructureConnector.cachedVillageConnections.isEmpty()) {
+                Records.VillageConnection villageConnection = StructureConnector.cachedVillageConnections.poll();
+                ConfiguredFeature<?, ?> feature = serverWorld.getRegistryManager()
+                        .get(RegistryKeys.CONFIGURED_FEATURE)
+                        .get(RoadFeature.ROAD_FEATURE_KEY);
+
+                if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
+                    new Road(serverWorld, villageConnection, roadConfig).generateRoad();
+                }
+
+            }
+
 
         });
 
-    }
-
-    private static void clearRoad(ServerWorld serverWorld, WorldChunk worldChunk) {
-        if (RoadFeature.roadPostProcessingPositions.isEmpty()) {
-            return;
-        }
-        for (BlockPos postProcessingPos : RoadFeature.roadPostProcessingPositions) {
-            if (postProcessingPos != null) {
-                Block blockAbove = worldChunk.getBlockState(postProcessingPos.up()).getBlock();
-                Block blockAtPos = worldChunk.getBlockState(postProcessingPos).getBlock();
-                if (blockAbove == Blocks.SNOW) {
-                    worldChunk.setBlockState(postProcessingPos.up(), Blocks.AIR.getDefaultState(), false);
-                    if (blockAtPos == Blocks.GRASS_BLOCK) {
-                        worldChunk.setBlockState(postProcessingPos, Blocks.GRASS_BLOCK.getDefaultState(), false);
-                    }
-                }
-                RoadFeature.roadPostProcessingPositions.remove(postProcessingPos);
-            }
-        }
     }
 }

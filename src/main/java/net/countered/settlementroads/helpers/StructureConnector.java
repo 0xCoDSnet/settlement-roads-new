@@ -1,21 +1,22 @@
-package net.countered.settlementroads.features.roadlogic;
+package net.countered.settlementroads.helpers;
 
 import net.countered.settlementroads.SettlementRoads;
-import net.countered.settlementroads.helpers.Records;
-import net.countered.settlementroads.helpers.StructureLocator;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 
 public class StructureConnector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
-
+    public static Queue<Records.VillageConnection> cachedVillageConnections = new ArrayDeque<>();
+    
     public static void generateNewConnections(ServerWorld serverWorld) {
         LOGGER.info("generating new connections");
         StructureLocator.locateConfiguredStructure(serverWorld, 1, true);
@@ -36,8 +37,11 @@ public class StructureConnector {
         BlockPos closestVillage = findClosestVillage(latestVillagePos, worldStructureLocations);
 
         if (closestVillage != null) {
+            Records.VillageConnection villageConnection = new Records.VillageConnection(latestVillagePos, closestVillage);
             serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_VILLAGES, ArrayList::new)
-                    .add(new Records.VillageConnection(latestVillagePos, closestVillage));        }
+                    .add(villageConnection);        
+            cachedVillageConnections.add(villageConnection);
+        }
     }
 
     private static BlockPos findClosestVillage(BlockPos currentVillage, List<BlockPos> allVillages) {
