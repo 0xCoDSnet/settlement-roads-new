@@ -22,9 +22,8 @@ public class Records {
         ).apply(instance, RoadData::new));
     }
 
-    public record RoadSegmentPlacement(int segmentIndex, BlockPos middlePos, List<BlockPos> positions) {
+    public record RoadSegmentPlacement(BlockPos middlePos, List<BlockPos> positions) {
         public static final Codec<RoadSegmentPlacement> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-                Codec.INT.fieldOf("segment_index").forGetter(RoadSegmentPlacement::segmentIndex),
                 BlockPos.CODEC.fieldOf("middle_pos").forGetter(RoadSegmentPlacement::middlePos),
                 BlockPos.CODEC.listOf().fieldOf("positions").forGetter(RoadSegmentPlacement::positions)
         ).apply(instance, RoadSegmentPlacement::new));

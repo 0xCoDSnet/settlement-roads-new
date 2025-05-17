@@ -26,7 +26,7 @@ import java.util.Optional;
 
 public class StructureLocator {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
     private static final DynamicCommandExceptionType STRUCTURE_INVALID_EXCEPTION = new DynamicCommandExceptionType(
             id -> Text.translatable("commands.locate.structure.invalid", id)
     );

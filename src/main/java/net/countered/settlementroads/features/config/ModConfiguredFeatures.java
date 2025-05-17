@@ -13,7 +13,7 @@ import java.util.List;
 
 public class ModConfiguredFeatures {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     public static void bootstrap(Registerable<ConfiguredFeature<?,?>> context){
         LOGGER.info("Bootstrap ConfiguredFeature");

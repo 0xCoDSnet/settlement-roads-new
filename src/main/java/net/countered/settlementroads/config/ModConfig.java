@@ -13,9 +13,6 @@ public class ModConfig extends MidnightConfig {
     @Entry(category = "pre-generation", name = "Number of structures to locate on world load")
     public static int initialLocatingCount = 7;
 
-    @Entry(category = "pre-generation", name = "Load road chunks instantly")
-    public static boolean loadRoadChunks = false;
-
     @Entry(category = "roads", name = "Distance between buoys")
     public static int distanceBetweenBuoys = 30;
 

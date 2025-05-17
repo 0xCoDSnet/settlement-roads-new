@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     // Road post-processing positions
     public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
@@ -90,48 +90,51 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     private void runRoadLogic(StructureWorldAccess structureWorldAccess, FeatureContext<RoadFeatureConfig> context) {
         int averagingRadius = ModConfig.averagingRadius;
         List<Records.RoadData> roadDataList = structureWorldAccess.toServerWorld().getAttached(WorldDataAttachment.ROAD_DATA_LIST);
-        if (roadDataList == null) {
-            return;
-        }
+        if (roadDataList == null) return;
+
+        ChunkPos currentChunkPos = new ChunkPos(context.getOrigin());
+
         for (Records.RoadData data : roadDataList) {
             int roadType = data.roadType();
             List<BlockState> materials = data.materials();
             List<Records.RoadSegmentPlacement> segmentList = data.roadSegmentList();
 
-            for (Records.RoadSegmentPlacement segment : segmentList) {
+            List<BlockPos> middlePositions = segmentList.stream().map(Records.RoadSegmentPlacement::middlePos).toList();
+            int segmentIndex = 0;
+            for (int i = 2; i < segmentList.size() - 2; i++) {
+                Records.RoadSegmentPlacement segment = segmentList.get(i);
+                BlockPos currentMiddle = segment.middlePos();
+                ChunkPos middleChunkPos = new ChunkPos(currentMiddle);
+                segmentIndex++;
+                if (!middleChunkPos.equals(currentChunkPos)) continue;
 
-                List<BlockPos> widthPositions = segment.positions();
-
-                int segmentIndex = segment.segmentIndex();
-                BlockPos middlePos = segment.middlePos();
-
-                ChunkPos middleChunkPos = new ChunkPos(middlePos);
-                ChunkPos currentChunkPos = new ChunkPos(context.getOrigin());
-
-                if (currentChunkPos.equals(middleChunkPos)) {
-
-                    List<Integer> heights = new ArrayList<>();
-                    for (int j = -averagingRadius; j <= averagingRadius; j++) {
-                        BlockPos samplePos = middlePos.add(j, 0, j);
+                BlockPos prevPos = middlePositions.get(i - 2);
+                BlockPos nextPos = middlePositions.get(i + 2);
+                List<Integer> heights = new ArrayList<>();
+                for (int j = i - averagingRadius; j <= i + averagingRadius; j++) {
+                    if (j >= 0 && j < middlePositions.size()) {
+                        BlockPos samplePos = middlePositions.get(j);
                         int y = structureWorldAccess.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, samplePos.getX(), samplePos.getZ());
                         heights.add(y);
                     }
-
-                    int averageY = (int) heights.stream().mapToInt(a -> a).average().orElse(middlePos.getY());
-                    BlockPos averagedPos = new BlockPos(middlePos.getX(), averageY, middlePos.getZ());
-
-                    for (BlockPos widthBlock : widthPositions) {
-                        BlockPos correctedYPos = new BlockPos(widthBlock.getX(), averageY, widthBlock.getZ());
-                        placeOnSurface(structureWorldAccess, correctedYPos, materials, roadType, Random.create(), -1, null, null, null);
-                    }
-
-                    placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, Random.create(), segmentIndex, null, null, null);
-                    //addDecoration(structureWorldAccess, averagedPos, segmentIndex, null, null, null);
                 }
+
+                int averageY = (int) Math.round(heights.stream().mapToInt(Integer::intValue).average().orElse(currentMiddle.getY()));
+                BlockPos averagedPos = new BlockPos(currentMiddle.getX(), averageY, currentMiddle.getZ());
+
+                Random random = Random.create();
+
+                for (BlockPos widthBlock : segment.positions()) {
+                    BlockPos correctedYPos = new BlockPos(widthBlock.getX(), averageY, widthBlock.getZ());
+                    placeOnSurface(structureWorldAccess, correctedYPos, materials, roadType, random, -1, nextPos, currentMiddle, middlePositions);
+                }
+
+                placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, random, segmentIndex, nextPos, prevPos, middlePositions);
+                addDecoration(structureWorldAccess, averagedPos, segmentIndex, nextPos, prevPos, middlePositions);
+
             }
         }
     }
-
 
     private void addDecoration(StructureWorldAccess structureWorldAccess, BlockPos placePos, int segmentIndex, BlockPos nextPos, BlockPos prevPos, List<BlockPos> middleBlockPositions) {
         if (!(segmentIndex == 10 || segmentIndex == middleBlockPositions.size()-10 || segmentIndex % 60 == 0)){

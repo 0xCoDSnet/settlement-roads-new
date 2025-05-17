@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ModPlacedFeatures {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     public static void bootstrap(Registerable<PlacedFeature> context){
         LOGGER.info("Bootstrap PlacedFeature");

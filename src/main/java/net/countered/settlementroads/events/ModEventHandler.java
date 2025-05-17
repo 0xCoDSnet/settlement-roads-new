@@ -43,10 +43,7 @@ public class ModEventHandler {
                 if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
                     new Road(serverWorld, villageConnection, roadConfig).generateRoad();
                 }
-
             }
-
-
         });
 
     }
