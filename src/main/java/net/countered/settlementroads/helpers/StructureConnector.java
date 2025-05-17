@@ -38,8 +38,11 @@ public class StructureConnector {
 
         if (closestVillage != null) {
             Records.VillageConnection villageConnection = new Records.VillageConnection(latestVillagePos, closestVillage);
-            serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_VILLAGES, ArrayList::new)
-                    .add(villageConnection);        
+            List<Records.VillageConnection> connections = new ArrayList<>(
+                    serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_VILLAGES, ArrayList::new)
+            );
+            connections.add(villageConnection);
+            serverWorld.setAttached(WorldDataAttachment.CONNECTED_VILLAGES, connections);
             cachedVillageConnections.add(villageConnection);
         }
     }

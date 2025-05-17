@@ -39,7 +39,11 @@ public class Road {
 
         List<BlockPos> waypoints = RoadPathingCalculator.generateControlPoints(start, end);
         List<Records.RoadSegmentPlacement> roadSegmentPlacements = RoadPathingCalculator.calculateSplinePath(waypoints, width);
-        serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new).add(new Records.RoadData(width, type, material, roadSegmentPlacements));
+
+        List<Records.RoadData> roadDataList = new ArrayList<>(serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new));
+        roadDataList.add(new Records.RoadData(width, type, material, roadSegmentPlacements));
+
+        serverWorld.setAttached(WorldDataAttachment.ROAD_DATA_LIST, roadDataList);
     }
 
     private static int allowedRoadTypes(Random deterministicRandom) {
