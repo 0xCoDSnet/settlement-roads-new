@@ -17,9 +17,8 @@ public class StructureConnector {
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
     public static Queue<Records.VillageConnection> cachedVillageConnections = new ArrayDeque<>();
     
-    public static void generateNewConnections(ServerWorld serverWorld) {
-        LOGGER.info("generating new connections");
-        StructureLocator.locateConfiguredStructure(serverWorld, 1, true);
+    public static void cacheNewConnection(ServerWorld serverWorld, boolean locateAtPlayer) {
+        StructureLocator.locateConfiguredStructure(serverWorld, 1, locateAtPlayer);
         List<BlockPos> villagePosList = serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS).structureLocations();
         if (villagePosList == null || villagePosList.size() < 2) {
             return;

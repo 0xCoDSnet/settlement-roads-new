@@ -80,7 +80,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             if (chunksForLocatingCounter > 300) {
                 List<Records.VillageConnection> connectionList= serverWorld.getAttached(WorldDataAttachment.CONNECTED_VILLAGES);
                 serverWorld.getServer().execute(() -> {
-                    StructureConnector.generateNewConnections(serverWorld);
+                    StructureConnector.cacheNewConnection(serverWorld, true);
                 });
                 chunksForLocatingCounter = 1;
             }

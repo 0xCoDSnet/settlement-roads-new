@@ -1,6 +1,7 @@
 package net.countered.settlementroads.events;
 
 
+import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.features.roadlogic.Road;
 import net.countered.settlementroads.features.roadlogic.RoadFeature;
@@ -24,16 +25,19 @@ public class ModEventHandler {
 
     public static void register() {
 
-        ServerWorldEvents.LOAD.register((minecraftServer, serverWorld) -> {
-            Records.StructureLocationData villageLocationData = serverWorld.getAttachedOrCreate(WorldDataAttachment.STRUCTURE_LOCATIONS, () -> new Records.StructureLocationData(new ArrayList<>()));
+        ServerWorldEvents.LOAD.register((server, serverWorld) -> {
+            if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
+            Records.StructureLocationData structureLocationData = serverWorld.getAttachedOrCreate(WorldDataAttachment.STRUCTURE_LOCATIONS, () -> new Records.StructureLocationData(new ArrayList<>()));
 
-            //List<BlockPos> villageLocations = villageLocationData.structureLocations();
-            //if (villageLocations == null || villageLocations.size() < ModConfig.initialLocatingCount) {
-            //    StructureLocator.locateConfiguredStructure(serverWorld, ModConfig.initialLocatingCount, false);
-            //}
+            if (structureLocationData.structureLocations().size() < ModConfig.initialLocatingCount) {
+                for (int i = 0; i < ModConfig.initialLocatingCount; i++) {
+                    StructureConnector.cacheNewConnection(serverWorld, false);
+                }
+            }
         });
 
-        ServerTickEvents.END_WORLD_TICK.register((serverWorld) -> {
+        ServerTickEvents.START_WORLD_TICK.register((serverWorld) -> {
+            if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
             if (!StructureConnector.cachedVillageConnections.isEmpty()) {
                 Records.VillageConnection villageConnection = StructureConnector.cachedVillageConnections.poll();
                 ConfiguredFeature<?, ?> feature = serverWorld.getRegistryManager()
