@@ -69,7 +69,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             return false;
         }
         List<BlockPos> villageLocations = structureLocationData.structureLocations();
-        tryFindNewVillageConnection(villageLocations, serverWorld);
+        //tryFindNewVillageConnection(villageLocations, serverWorld);
         runRoadLogic(structureWorldAccess, context);
         RoadStructures.placeDecorations(structureWorldAccess, context);
         return true;

@@ -24,8 +24,7 @@ public class SettlementRoads implements ModInitializer {
 	// Caching should not change already established connections (broken roads) test?
 	// Remove config for loading chunks
 	// Clean snow from roads
-	// fix locating in other dimensions
-	// cant add structure locations after reloading world -> immutable
+	//
 
 	// Change:
 	// Artificial roads look bad
