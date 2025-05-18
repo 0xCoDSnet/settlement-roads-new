@@ -4,7 +4,7 @@ package net.countered.settlementroads.events;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.features.roadlogic.Road;
-import net.countered.settlementroads.features.roadlogic.RoadFeature;
+import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;

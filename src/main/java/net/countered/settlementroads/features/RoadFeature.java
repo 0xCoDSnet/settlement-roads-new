@@ -1,9 +1,10 @@
-package net.countered.settlementroads.features.roadlogic;
+package net.countered.settlementroads.features;
 
 import com.mojang.serialization.Codec;
 import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
+import net.countered.settlementroads.features.roadlogic.RoadStructures;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;

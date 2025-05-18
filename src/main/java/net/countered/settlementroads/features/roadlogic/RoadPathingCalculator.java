@@ -12,9 +12,9 @@ import java.util.*;
 public class RoadPathingCalculator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
-    private static final Set<BlockPos> widthPositionsCache = new HashSet<>();
 
     public static List<Records.RoadSegmentPlacement> calculateSplinePath(List<BlockPos> controlPoints, int width) {
+        Set<BlockPos> widthPositions = new HashSet<>();
         Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>(); // Has to be linked
         Set<BlockPos> middlePositions = new HashSet<>();  // Track middle blocks
 
@@ -37,10 +37,10 @@ public class RoadPathingCalculator {
                             middlePositions.add(middlePos);
 
                             // Generate road width
-                            roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
+                            roadSegments.put(middlePos, generateWidth(middlePos, lastSplinePos, nextSplinePos, width, widthPositions));
                         }
                         else {
-                            roadSegments.get(middlePos).addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width));
+                            roadSegments.get(middlePos).addAll(generateWidth(middlePos, lastSplinePos, nextSplinePos, width, widthPositions));
                         }
                     }
                 }
@@ -63,7 +63,6 @@ public class RoadPathingCalculator {
                 roadSegments.get(middlePos).remove(widthPos);
             }
         }
-        widthPositionsCache.clear();
 
         List<Records.RoadSegmentPlacement> roadSegmentPlacements = new ArrayList<>();
         for (Map.Entry<BlockPos, Set<BlockPos>> mapEntry : roadSegments.entrySet()) {
@@ -72,7 +71,7 @@ public class RoadPathingCalculator {
         return roadSegmentPlacements;
     }
 
-    private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width) {
+    private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width, Set<BlockPos> widthPositionsCache) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
         double adjustedWidth = width-0.05d;
         // Calculate tangent vector (direction of the road)

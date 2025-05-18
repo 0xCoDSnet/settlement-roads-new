@@ -1,7 +1,7 @@
 package net.countered.settlementroads.features.config;
 
 import net.countered.settlementroads.SettlementRoads;
-import net.countered.settlementroads.features.roadlogic.RoadFeature;
+import net.countered.settlementroads.features.RoadFeature;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.minecraft.registry.Registries;

@@ -36,14 +36,26 @@ public class StructureConnector {
         BlockPos closestVillage = findClosestVillage(latestVillagePos, worldStructureLocations);
 
         if (closestVillage != null) {
-            Records.VillageConnection villageConnection = new Records.VillageConnection(latestVillagePos, closestVillage);
             List<Records.VillageConnection> connections = new ArrayList<>(
                     serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_VILLAGES, ArrayList::new)
             );
-            connections.add(villageConnection);
-            serverWorld.setAttached(WorldDataAttachment.CONNECTED_VILLAGES, connections);
-            cachedVillageConnections.add(villageConnection);
+            if (!connectionExists(connections, latestVillagePos, closestVillage)) {
+                Records.VillageConnection villageConnection = new Records.VillageConnection(latestVillagePos, closestVillage);
+                connections.add(villageConnection);
+                serverWorld.setAttached(WorldDataAttachment.CONNECTED_VILLAGES, connections);
+                cachedVillageConnections.add(villageConnection);
+            }
         }
+    }
+
+    private static boolean connectionExists(List<Records.VillageConnection> existingConnections, BlockPos a, BlockPos b) {
+        for (Records.VillageConnection connection : existingConnections) {
+            if ((connection.from().equals(a) && connection.to().equals(b)) ||
+                    (connection.to().equals(b) && connection.from().equals(a))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static BlockPos findClosestVillage(BlockPos currentVillage, List<BlockPos> allVillages) {

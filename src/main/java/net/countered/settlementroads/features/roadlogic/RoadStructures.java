@@ -1,5 +1,6 @@
 package net.countered.settlementroads.features.roadlogic;
 
+import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.helpers.Records;
 import net.minecraft.block.BlockState;
