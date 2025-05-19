@@ -1,7 +1,13 @@
-package net.countered.settlementroads.features.roadlogic.pathfinding;
+package net.countered.settlementroads.features.roadlogic;
 
 import net.countered.settlementroads.helpers.Records;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.registry.tag.BiomeTags;
+import net.minecraft.server.world.ServerChunkManager;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.Heightmap;
+import net.minecraft.world.biome.Biome;
 
 import java.util.*;
 
@@ -10,15 +16,15 @@ public class RoadPathCalculator {
     private final static int neighborDistance = 4;
 
     public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
-            BlockPos start, BlockPos end, int width, HeightmapSampler heightSampler
+            BlockPos start, BlockPos end, int width, ServerWorld serverWorld
     ) {
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.fScore));
         Map<BlockPos, Node> allNodes = new HashMap<>();
         Set<BlockPos> closedSet = new HashSet<>();
         Map<BlockPos, List<BlockPos>> interpolatedSegments = new HashMap<>();
 
-        BlockPos startGround = new BlockPos(start.getX(), heightSampler.sample(start.getX(), start.getZ()), start.getZ());
-        BlockPos endGround = new BlockPos(end.getX(), heightSampler.sample(end.getX(), end.getZ()), end.getZ());
+        BlockPos startGround = new BlockPos(start.getX(), heightSampler(start.getX(), start.getZ(), serverWorld), start.getZ());
+        BlockPos endGround = new BlockPos(end.getX(), heightSampler(end.getX(), end.getZ(), serverWorld), end.getZ());
 
         Node startNode = new Node(startGround, null, 0.0, heuristic(startGround, endGround));
         openSet.add(startNode);
@@ -37,7 +43,7 @@ public class RoadPathCalculator {
             Node current = openSet.poll();
 
             if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
-                System.out.println("found path");
+                System.out.println("found path " + start);
                 return reconstructPath(current, width, interpolatedSegments);
             }
 
@@ -45,17 +51,23 @@ public class RoadPathCalculator {
 
             for (int[] offset : neighborOffsets) {
                 BlockPos neighborXZ = current.pos.add(offset[0], 0, offset[1]);
-                int y = heightSampler.sample(neighborXZ.getX(), neighborXZ.getZ());
+                int y = heightSampler(neighborXZ.getX(), neighborXZ.getZ(), serverWorld);
                 BlockPos neighborPos = new BlockPos(neighborXZ.getX(), y, neighborXZ.getZ());
 
                 if (closedSet.contains(neighborPos)) continue;
 
+                RegistryEntry<Biome> biomeRegistryEntry = biomeSampler(neighborPos, serverWorld);
+                int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER) || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN) || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN)? 10000 : 0 ;
                 double elevation = Math.abs(y - current.pos.getY());
+                if (elevation > 4) {
+                    System.out.println("skipping");
+                    continue;
+                }
                 int offsetSum = Math.abs(offset[0]) + Math.abs(offset[1]);
                 double stepCost = (offsetSum == 2 * neighborDistance) ?
-                        neighborDistance * 1.414 : neighborDistance; // Approximate √2
+                        neighborDistance * 1.414 : neighborDistance;
 
-                double tentativeG = current.gScore + stepCost + elevation * 5;
+                double tentativeG = current.gScore + stepCost + elevation * 100 + biomeCost;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -64,7 +76,6 @@ public class RoadPathCalculator {
                     allNodes.put(neighborPos, neighbor);
                     openSet.add(neighbor);
 
-                    // Interpolation der Zwischenpunkte von current -> neighbor (auf gleicher Y-Höhe)
                     List<BlockPos> segmentPoints = new ArrayList<>();
                     for (int i = 1; i < neighborDistance; i++) {
                         int interpX = current.pos.getX() + (offset[0] * i) / neighborDistance;
@@ -120,7 +131,7 @@ public class RoadPathCalculator {
         int dz = a.getZ() - b.getZ();
         int dy = Math.abs(a.getY() - b.getY());
         double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz)); // Approximate distance
-        return dxzApprox * 3 + dy;
+        return dxzApprox * 60;
     }
 
     private static class Node {
@@ -155,7 +166,12 @@ public class RoadPathCalculator {
         return segmentWidthPositions;
     }
 
-    public interface HeightmapSampler {
-        int sample(int x, int z);
+    private static int heightSampler(int x, int z, ServerWorld serverWorld) {
+        ServerChunkManager chunkManager = serverWorld.getChunkManager();
+        return chunkManager.getChunkGenerator().getHeightInGround(x, z, Heightmap.Type.WORLD_SURFACE_WG, serverWorld, chunkManager.getNoiseConfig());
+    }
+
+    private static RegistryEntry<Biome> biomeSampler(BlockPos pos, ServerWorld serverWorld) {
+        return serverWorld.getBiome(pos);
     }
 }

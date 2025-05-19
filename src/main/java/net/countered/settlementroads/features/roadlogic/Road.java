@@ -2,14 +2,12 @@ package net.countered.settlementroads.features.roadlogic;
 
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
-import net.countered.settlementroads.features.roadlogic.pathfinding.RoadPathCalculator;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
 import net.minecraft.block.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.world.Heightmap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +37,7 @@ public class Road {
         BlockPos start = villageConnection.from();
         BlockPos end = villageConnection.to();
 
-        RoadPathCalculator.HeightmapSampler heightSampler = (x, z) -> serverWorld.getChunkManager().getChunkGenerator().getHeightInGround(x, z, Heightmap.Type.WORLD_SURFACE_WG, serverWorld, serverWorld.getChunkManager().getNoiseConfig());
-
-        List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, heightSampler);
+        List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld);
 
         List<Records.RoadData> roadDataList = new ArrayList<>(serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new));
         roadDataList.add(new Records.RoadData(width, type, material, roadSegmentPlacementList));

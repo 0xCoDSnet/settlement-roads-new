@@ -47,7 +47,7 @@ public class ModEventHandler {
 
                 if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
                     CompletableFuture.runAsync(() -> {
-                                new Road(serverWorld, villageConnection, roadConfig).generateRoad();
+                        new Road(serverWorld, villageConnection, roadConfig).generateRoad();
                     });
                 }
 

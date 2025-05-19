@@ -28,7 +28,7 @@ public class ModConfiguredFeatures {
                                 List.of(List.of(Blocks.COARSE_DIRT.getDefaultState(), Blocks.ROOTED_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState()),
                                         List.of(Blocks.COBBLESTONE.getDefaultState(), Blocks.MOSSY_COBBLESTONE.getDefaultState(), Blocks.CRACKED_STONE_BRICKS.getDefaultState()),
                                         List.of(Blocks.DIRT_PATH.getDefaultState(), Blocks.COARSE_DIRT.getDefaultState(), Blocks.PACKED_MUD.getDefaultState())),
-                                List.of(3,4,5),                                                                                                           // width
+                                List.of(3),                                                                                                           // width
                                 List.of(1,2,3,4,5,6,7,8,9)                                                                                                // quality (not used)
                         )
                 )

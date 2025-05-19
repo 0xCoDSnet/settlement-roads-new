@@ -19,7 +19,7 @@ public class RoadFeatureRegistry {
         Registry.register(Registries.FEATURE, Identifier.of(SettlementRoads.MOD_ID, "road_feature"), RoadFeature.ROAD_FEATURE);
         BiomeModifications.addFeature(
                 BiomeSelectors.all(),
-                GenerationStep.Feature.RAW_GENERATION,
+                GenerationStep.Feature.LOCAL_MODIFICATIONS,
                 RoadFeature.ROAD_FEATURE_PLACED_KEY
         );
     }
