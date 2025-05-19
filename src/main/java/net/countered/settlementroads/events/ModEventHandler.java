@@ -5,9 +5,11 @@ import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.features.roadlogic.Road;
+import net.countered.settlementroads.features.roadlogic.RoadPathCalculator;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.registry.RegistryKeys;
@@ -36,7 +38,6 @@ public class ModEventHandler {
                 }
             }
         });
-
         ServerTickEvents.START_WORLD_TICK.register((serverWorld) -> {
             if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
             if (!StructureConnector.cachedVillageConnections.isEmpty()) {
@@ -50,9 +51,10 @@ public class ModEventHandler {
                         new Road(serverWorld, villageConnection, roadConfig).generateRoad();
                     });
                 }
-
             }
         });
-
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            RoadPathCalculator.heightCache.clear();
+        });
     }
 }
