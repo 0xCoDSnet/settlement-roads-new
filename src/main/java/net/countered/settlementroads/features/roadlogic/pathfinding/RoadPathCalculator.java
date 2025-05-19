@@ -2,17 +2,20 @@ package net.countered.settlementroads.features.roadlogic.pathfinding;
 
 import net.countered.settlementroads.helpers.Records;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
 
 import java.util.*;
 
 public class RoadPathCalculator {
+
+    private final static int neighborDistance = 3;
+
     public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
             BlockPos start, BlockPos end, int width, HeightmapSampler heightSampler
     ) {
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.fScore));
         Map<BlockPos, Node> allNodes = new HashMap<>();
         Set<BlockPos> closedSet = new HashSet<>();
+        Map<BlockPos, List<BlockPos>> interpolatedSegments = new HashMap<>();
 
         BlockPos startGround = new BlockPos(start.getX(), heightSampler.sample(start.getX(), start.getZ()), start.getZ());
         BlockPos endGround = new BlockPos(end.getX(), heightSampler.sample(end.getX(), end.getZ()), end.getZ());
@@ -23,30 +26,35 @@ public class RoadPathCalculator {
 
         int maxSteps = 10000;
 
+        int d = neighborDistance;
+        int[][] neighborOffsets = {
+                { d,  0}, {-d,  0}, { 0,  d}, { 0, -d},
+                { d,  d}, { d, -d}, {-d,  d}, {-d, -d}
+        };
+
         while (!openSet.isEmpty() && maxSteps-- > 0) {
             System.out.println(maxSteps);
             Node current = openSet.poll();
 
-            if (current.pos.getX() == endGround.getX() && current.pos.getZ() == endGround.getZ()) {
-                return reconstructPath(current, width, heightSampler);
+            if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
+                System.out.println("found path");
+                return reconstructPath(current, width, interpolatedSegments);
             }
 
             closedSet.add(current.pos);
 
-            for (Direction dir : Direction.Type.HORIZONTAL) {
-                BlockPos neighborPos = current.pos.offset(dir);
-                int y = heightSampler.sample(neighborPos.getX(), neighborPos.getZ());
-                neighborPos = new BlockPos(neighborPos.getX(), y, neighborPos.getZ());
+            for (int[] offset : neighborOffsets) {
+                BlockPos neighborXZ = current.pos.add(offset[0], 0, offset[1]);
+                int y = heightSampler.sample(neighborXZ.getX(), neighborXZ.getZ());
+                BlockPos neighborPos = new BlockPos(neighborXZ.getX(), y, neighborXZ.getZ());
 
                 if (closedSet.contains(neighborPos)) continue;
 
-                double elevationCost = Math.abs(y - current.pos.getY()); // Avoid steep elevation differences
-                if (elevationCost > 3) {
-                    System.out.println("skipping");
-                    continue; // Skip if elevation difference is too high
-                }
+                double elevation = Math.abs(y - current.pos.getY());
+                double stepCost = (Math.abs(offset[0]) + Math.abs(offset[1]) == 2 * neighborDistance) ?
+                        neighborDistance * Math.sqrt(2) : neighborDistance;
 
-                double tentativeG = current.gScore + 1 + elevationCost;
+                double tentativeG = current.gScore + stepCost + elevation * 5;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -54,23 +62,44 @@ public class RoadPathCalculator {
                     neighbor = new Node(neighborPos, current, tentativeG, tentativeG + h);
                     allNodes.put(neighborPos, neighbor);
                     openSet.add(neighbor);
+
+                    // Interpolation der Zwischenpunkte von current -> neighbor (auf gleicher Y-Höhe)
+                    List<BlockPos> segmentPoints = new ArrayList<>();
+                    for (int i = 1; i < neighborDistance; i++) {
+                        int interpX = current.pos.getX() + (offset[0] * i) / neighborDistance;
+                        int interpZ = current.pos.getZ() + (offset[1] * i) / neighborDistance;
+                        BlockPos interpolated = new BlockPos(interpX, current.pos.getY(), interpZ);
+                        segmentPoints.add(interpolated);
+                    }
+                    interpolatedSegments.put(neighborPos, segmentPoints);
                 }
             }
         }
         System.out.println("no suitable path found");
-        return Collections.emptyList(); // No path found
+        return Collections.emptyList();
     }
 
-    private static List<Records.RoadSegmentPlacement> reconstructPath(Node endNode, int width, HeightmapSampler sampler) {
+    private static List<Records.RoadSegmentPlacement> reconstructPath(
+            Node endNode, int width, Map<BlockPos, List<BlockPos>> interpolatedPathMap
+    ) {
         Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>();
         Set<BlockPos> widthCache = new HashSet<>();
         Node current = endNode;
 
         while (current != null) {
             BlockPos pos = current.pos;
-            BlockPos prev = current.parent != null ? current.parent.pos : pos;
-            Set<BlockPos> widthSet = generateWidth(pos, prev, pos, width, widthCache);
+
+            // Segment an Haupt-Position
+            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache);
             roadSegments.put(pos, widthSet);
+
+            // Segment an interpolierten Zwischenpositionen
+            List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, Collections.emptyList());
+            for (BlockPos interp : interpolated) {
+                Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache);
+                roadSegments.put(interp, widthSetInterp);
+            }
+
             current = current.parent;
         }
 
@@ -81,10 +110,11 @@ public class RoadPathCalculator {
         return result;
     }
 
+
     private static double heuristic(BlockPos a, BlockPos b) {
         double dxzDistance = Math.sqrt(Math.pow(a.getX() - b.getX(), 2) + Math.pow(a.getZ() - b.getZ(), 2));
         double elevationDifference = Math.abs(a.getY() - b.getY());
-        return dxzDistance * 2 + elevationDifference;
+        return dxzDistance * 3 + elevationDifference;
     }
 
     private static class Node {
@@ -100,63 +130,28 @@ public class RoadPathCalculator {
         }
     }
 
-    private static Set<BlockPos> generateWidth(BlockPos center, BlockPos prev, BlockPos next, int width, Set<BlockPos> widthPositionsCache) {
+    private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
-        double adjustedWidth = width - 0.05d;
-        // Calculate tangent vector (direction of the road)
-        int dx = next.getX() - prev.getX();
-        int dz = next.getZ() - prev.getZ();
-        // Normalize the tangent to get the perpendicular vector
-        double length = Math.sqrt(dx * dx + dz * dz);
 
-        double tangentX = dx / length;  // Tangent x
-        double tangentZ = dz / length;  // Tangent z
-        // Perpendicular vector (normal to the tangent)
-        double px = -tangentZ;  // Perpendicular x
-        double pz = tangentX;   // Perpendicular z
+        // Wir erzeugen einen Kreis (Radius in Blöcken) um center.
+        // Die Y-Höhe wird von center übernommen.
+        int rSquared = radius * radius;
+        int centerX = center.getX();
+        int centerZ = center.getZ();
+        int y = center.getY();
 
-        // Create road width using perpendicular vector
-        List<BlockPos> widthLine = getStraightLine(
-                new BlockPos(center.getX() - (int) Math.round(px * (adjustedWidth / 2d)), center.getY(), center.getZ() - (int) Math.round(pz * (adjustedWidth / 2d))),
-                new BlockPos(center.getX() + (int) Math.round(px * (adjustedWidth / 2d)), center.getY(), center.getZ() + (int) Math.round(pz * (adjustedWidth / 2d)))
-        );
-        for (BlockPos widthBlockPos : widthLine) {
-            if (widthPositionsCache.contains(widthBlockPos)) {
-                continue;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                //if (dx * dx + dz * dz <= rSquared) {
+                    BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
+                    //if (!widthPositionsCache.contains(pos)) {
+                        widthPositionsCache.add(pos);
+                        segmentWidthPositions.add(pos);
+                    //}
+                //}
             }
-            widthPositionsCache.add(widthBlockPos);
-            segmentWidthPositions.add(widthBlockPos);
         }
         return segmentWidthPositions;
-    }
-
-    public static List<BlockPos> getStraightLine(BlockPos start, BlockPos end) {
-        List<BlockPos> lineBlocks = new ArrayList<>();
-
-        int x1 = start.getX(), z1 = start.getZ();
-        int x2 = end.getX(), z2 = end.getZ();
-
-        int dx = Math.abs(x2 - x1);
-        int dz = Math.abs(z2 - z1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sz = z1 < z2 ? 1 : -1;
-        int err = dx - dz;
-
-        while (true) {
-            lineBlocks.add(new BlockPos(x1, 0, z1));
-
-            if (x1 == x2 && z1 == z2) break;
-            int e2 = err * 2;
-
-            if (e2 > -dz) {
-                err -= dz;
-                x1 += sx;
-            } else if (e2 < dx) {
-                err += dx;
-                z1 += sz;
-            }
-        }
-        return lineBlocks;
     }
 
     public interface HeightmapSampler {

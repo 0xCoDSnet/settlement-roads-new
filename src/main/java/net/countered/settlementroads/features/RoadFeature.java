@@ -132,7 +132,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
                 placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, random, segmentIndex, nextPos, prevPos, middlePositions);
                 addDecoration(structureWorldAccess, averagedPos, segmentIndex, nextPos, prevPos, middlePositions);
-
             }
         }
     }

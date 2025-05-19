@@ -2,9 +2,9 @@ package net.countered.settlementroads.events;
 
 
 import net.countered.settlementroads.config.ModConfig;
+import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.features.roadlogic.Road;
-import net.countered.settlementroads.features.RoadFeature;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
@@ -45,8 +46,11 @@ public class ModEventHandler {
                         .get(RoadFeature.ROAD_FEATURE_KEY);
 
                 if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
-                    new Road(serverWorld, villageConnection, roadConfig).generateRoad();
+                    CompletableFuture.runAsync(() -> {
+                                new Road(serverWorld, villageConnection, roadConfig).generateRoad();
+                    });
                 }
+
             }
         });
 
