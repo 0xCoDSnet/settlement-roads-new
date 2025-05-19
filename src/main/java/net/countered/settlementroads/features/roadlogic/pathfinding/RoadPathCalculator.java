@@ -7,7 +7,7 @@ import java.util.*;
 
 public class RoadPathCalculator {
 
-    private final static int neighborDistance = 3;
+    private final static int neighborDistance = 4;
 
     public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
             BlockPos start, BlockPos end, int width, HeightmapSampler heightSampler
@@ -24,12 +24,12 @@ public class RoadPathCalculator {
         openSet.add(startNode);
         allNodes.put(startGround, startNode);
 
-        int maxSteps = 10000;
+        int maxSteps = 1000;
 
         int d = neighborDistance;
         int[][] neighborOffsets = {
-                { d,  0}, {-d,  0}, { 0,  d}, { 0, -d},
-                { d,  d}, { d, -d}, {-d,  d}, {-d, -d}
+                {d, 0}, {-d, 0}, {0, d}, {0, -d},
+                {d, d}, {d, -d}, {-d, d}, {-d, -d}
         };
 
         while (!openSet.isEmpty() && maxSteps-- > 0) {
@@ -51,8 +51,9 @@ public class RoadPathCalculator {
                 if (closedSet.contains(neighborPos)) continue;
 
                 double elevation = Math.abs(y - current.pos.getY());
-                double stepCost = (Math.abs(offset[0]) + Math.abs(offset[1]) == 2 * neighborDistance) ?
-                        neighborDistance * Math.sqrt(2) : neighborDistance;
+                int offsetSum = Math.abs(offset[0]) + Math.abs(offset[1]);
+                double stepCost = (offsetSum == 2 * neighborDistance) ?
+                        neighborDistance * 1.414 : neighborDistance; // Approximate √2
 
                 double tentativeG = current.gScore + stepCost + elevation * 5;
 
@@ -82,25 +83,29 @@ public class RoadPathCalculator {
     private static List<Records.RoadSegmentPlacement> reconstructPath(
             Node endNode, int width, Map<BlockPos, List<BlockPos>> interpolatedPathMap
     ) {
+        List<Node> pathNodes = new ArrayList<>();
+        Node current = endNode;
+        while (current != null) {
+            pathNodes.add(current);
+            current = current.parent;
+        }
+        Collections.reverse(pathNodes);
+
         Map<BlockPos, Set<BlockPos>> roadSegments = new LinkedHashMap<>();
         Set<BlockPos> widthCache = new HashSet<>();
-        Node current = endNode;
 
-        while (current != null) {
-            BlockPos pos = current.pos;
+        for (Node node : pathNodes) {
+            BlockPos pos = node.pos;
 
-            // Segment an Haupt-Position
-            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache);
-            roadSegments.put(pos, widthSet);
-
-            // Segment an interpolierten Zwischenpositionen
+            // Interpolated positions (from parent to this)
             List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, Collections.emptyList());
             for (BlockPos interp : interpolated) {
                 Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache);
                 roadSegments.put(interp, widthSetInterp);
             }
 
-            current = current.parent;
+            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache);
+            roadSegments.put(pos, widthSet);
         }
 
         List<Records.RoadSegmentPlacement> result = new ArrayList<>();
@@ -110,11 +115,12 @@ public class RoadPathCalculator {
         return result;
     }
 
-
     private static double heuristic(BlockPos a, BlockPos b) {
-        double dxzDistance = Math.sqrt(Math.pow(a.getX() - b.getX(), 2) + Math.pow(a.getZ() - b.getZ(), 2));
-        double elevationDifference = Math.abs(a.getY() - b.getY());
-        return dxzDistance * 3 + elevationDifference;
+        int dx = a.getX() - b.getX();
+        int dz = a.getZ() - b.getZ();
+        int dy = Math.abs(a.getY() - b.getY());
+        double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz)); // Approximate distance
+        return dxzApprox * 3 + dy;
     }
 
     private static class Node {
@@ -133,22 +139,17 @@ public class RoadPathCalculator {
     private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
 
-        // Wir erzeugen einen Kreis (Radius in Blöcken) um center.
-        // Die Y-Höhe wird von center übernommen.
-        int rSquared = radius * radius;
         int centerX = center.getX();
         int centerZ = center.getZ();
-        int y = center.getY();
+        int y = 0;
 
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-                //if (dx * dx + dz * dz <= rSquared) {
-                    BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
-                    //if (!widthPositionsCache.contains(pos)) {
-                        widthPositionsCache.add(pos);
-                        segmentWidthPositions.add(pos);
-                    //}
-                //}
+                BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
+                if (!widthPositionsCache.contains(pos)) {
+                    widthPositionsCache.add(pos);
+                    segmentWidthPositions.add(pos);
+                }
             }
         }
         return segmentWidthPositions;

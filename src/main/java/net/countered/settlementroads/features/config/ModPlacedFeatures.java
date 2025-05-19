@@ -22,7 +22,7 @@ public class ModPlacedFeatures {
 
         context.register(RoadFeature.ROAD_FEATURE_PLACED_KEY,
                 new PlacedFeature(configuredFeatureRegistryEntryLookup.getOrThrow(RoadFeature.ROAD_FEATURE_KEY),
-                        List.of(HeightmapPlacementModifier.of(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES)))
+                        List.of(HeightmapPlacementModifier.of(Heightmap.Type.WORLD_SURFACE_WG)))
         );
     }
 }

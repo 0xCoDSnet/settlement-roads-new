@@ -69,7 +69,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             return false;
         }
         List<BlockPos> villageLocations = structureLocationData.structureLocations();
-        //tryFindNewVillageConnection(villageLocations, serverWorld);
+        tryFindNewVillageConnection(villageLocations, serverWorld);
         runRoadLogic(structureWorldAccess, context);
         RoadStructures.placeDecorations(structureWorldAccess, context);
         return true;
@@ -115,7 +115,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                 for (int j = i - averagingRadius; j <= i + averagingRadius; j++) {
                     if (j >= 0 && j < middlePositions.size()) {
                         BlockPos samplePos = middlePositions.get(j);
-                        int y = structureWorldAccess.getTopY(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, samplePos.getX(), samplePos.getZ());
+                        int y = structureWorldAccess.getTopY(Heightmap.Type.WORLD_SURFACE_WG, samplePos.getX(), samplePos.getZ());
                         heights.add(y);
                     }
                 }
@@ -130,7 +130,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     placeOnSurface(structureWorldAccess, correctedYPos, materials, roadType, random, -1, nextPos, currentMiddle, middlePositions);
                 }
 
-                placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, random, segmentIndex, nextPos, prevPos, middlePositions);
+                //placeOnSurface(structureWorldAccess, averagedPos, materials, roadType, random, segmentIndex, nextPos, prevPos, middlePositions);
                 addDecoration(structureWorldAccess, averagedPos, segmentIndex, nextPos, prevPos, middlePositions);
             }
         }
@@ -160,9 +160,9 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         double naturalBlockChance = 0.5;
         BlockPos surfacePos = placePos;
         if (natural == 1) {
-            surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos);
+            surfacePos = structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, placePos);
         }
-        BlockState blockStateAtPos = structureWorldAccess.getBlockState(structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, surfacePos).down());
+        BlockState blockStateAtPos = structureWorldAccess.getBlockState(structureWorldAccess.getTopPosition(Heightmap.Type.WORLD_SURFACE_WG, surfacePos).down());
         if (blockStateAtPos.equals(Blocks.WATER.getDefaultState())) {
             // If it's water, place a buoy
             if (centerBlockCount % (ModConfig.distanceBetweenBuoys + 6) == 0) {

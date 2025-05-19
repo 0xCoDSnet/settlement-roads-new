@@ -81,7 +81,7 @@ public class RoadStructures {
             if (roadDecoration != null) {
                 BlockPos placePos = roadDecoration.placePos();
 
-                BlockPos surfacePos = placePos.withY(structureWorldAccess.getChunk(placePos).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, placePos.getX(), placePos.getZ())+1);
+                BlockPos surfacePos = placePos.withY(structureWorldAccess.getChunk(placePos).sampleHeightmap(Heightmap.Type.WORLD_SURFACE_WG, placePos.getX(), placePos.getZ())+1);
 
                 BlockState blockStateBelow = structureWorldAccess.getBlockState(surfacePos.down());
                 if (blockStateBelow.isOf(Blocks.WATER) || blockStateBelow.isOf(Blocks.LAVA) || blockStateBelow.isIn(BlockTags.LOGS) || RoadFeature.dontPlaceHere.contains(blockStateBelow.getBlock())) {
