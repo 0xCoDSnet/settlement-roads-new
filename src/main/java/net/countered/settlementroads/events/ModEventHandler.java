@@ -13,48 +13,92 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.gen.feature.ConfiguredFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
 public class ModEventHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    private static ExecutorService executor = Executors.newFixedThreadPool(2);
+    private static final ConcurrentHashMap<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
     public static void register() {
 
         ServerWorldEvents.LOAD.register((server, serverWorld) -> {
+            restartExecutorIfNeeded();
             if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
             Records.StructureLocationData structureLocationData = serverWorld.getAttachedOrCreate(WorldDataAttachment.STRUCTURE_LOCATIONS, () -> new Records.StructureLocationData(new ArrayList<>()));
 
             if (structureLocationData.structureLocations().size() < ModConfig.initialLocatingCount) {
                 for (int i = 0; i < ModConfig.initialLocatingCount; i++) {
                     StructureConnector.cacheNewConnection(serverWorld, false);
+                    tryGenerateNewRoads(serverWorld, true, 5000);
                 }
             }
         });
+
+        ServerWorldEvents.UNLOAD.register((server, serverWorld) -> {
+            if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
+            Future<?> task = runningTasks.remove(serverWorld.getRegistryKey().getValue().toString());
+            if (task != null && !task.isDone()) {
+                task.cancel(true);
+                LOGGER.info("Aborted running road task for world: {}", serverWorld.getRegistryKey().getValue());
+            }
+        });
+
         ServerTickEvents.START_WORLD_TICK.register((serverWorld) -> {
             if (!serverWorld.getRegistryKey().equals(net.minecraft.world.World.OVERWORLD)) return;
-            if (!StructureConnector.cachedVillageConnections.isEmpty()) {
-                Records.VillageConnection villageConnection = StructureConnector.cachedVillageConnections.poll();
-                ConfiguredFeature<?, ?> feature = serverWorld.getRegistryManager()
-                        .get(RegistryKeys.CONFIGURED_FEATURE)
-                        .get(RoadFeature.ROAD_FEATURE_KEY);
-
-                if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
-                    CompletableFuture.runAsync(() -> {
-                        new Road(serverWorld, villageConnection, roadConfig).generateRoad();
-                    });
-                }
-            }
+            tryGenerateNewRoads(serverWorld, true, 5000);
         });
+
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             RoadPathCalculator.heightCache.clear();
+            runningTasks.values().forEach(future -> future.cancel(true));
+            runningTasks.clear();
+            executor.shutdownNow();
+            LOGGER.info("SettlementRoads: ExecutorService shut down.");
         });
+    }
+
+    private static void tryGenerateNewRoads(ServerWorld serverWorld, Boolean async, int steps) {
+        if (!StructureConnector.cachedVillageConnections.isEmpty()) {
+            Records.VillageConnection villageConnection = StructureConnector.cachedVillageConnections.poll();
+            ConfiguredFeature<?, ?> feature = serverWorld.getRegistryManager()
+                    .get(RegistryKeys.CONFIGURED_FEATURE)
+                    .get(RoadFeature.ROAD_FEATURE_KEY);
+
+            if (feature != null && feature.config() instanceof RoadFeatureConfig roadConfig) {
+                if (async) {
+                    Future<?> future = executor.submit(() -> {
+                        try {
+                            new Road(serverWorld, villageConnection, roadConfig).generateRoad(steps);
+                        } catch (Exception e) {
+                            LOGGER.error("Error generating road", e);
+                        }
+                    });
+                    runningTasks.put(serverWorld.getRegistryKey().getValue().toString(), future);
+                }
+                else {
+                    new Road(serverWorld, villageConnection, roadConfig).generateRoad(steps);
+                }
+            }
+        }
+    }
+
+    private static void restartExecutorIfNeeded() {
+        if (executor.isShutdown() || executor.isTerminated()) {
+            executor = Executors.newFixedThreadPool(2);
+            LOGGER.info("SettlementRoads: ExecutorService restarted.");
+        }
     }
 }

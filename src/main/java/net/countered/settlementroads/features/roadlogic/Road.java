@@ -24,7 +24,7 @@ public class Road {
         this.context = config;
     }
 
-    public void generateRoad(){
+    public void generateRoad(int maxSteps){
         Random random = Random.create();
         int width = getRandomWidth(random, context);
         int type = allowedRoadTypes(random);
@@ -37,7 +37,7 @@ public class Road {
         BlockPos start = villageConnection.from();
         BlockPos end = villageConnection.to();
 
-        List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld);
+        List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld, maxSteps);
 
         List<Records.RoadData> roadDataList = new ArrayList<>(serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new));
         roadDataList.add(new Records.RoadData(width, type, material, roadSegmentPlacementList));

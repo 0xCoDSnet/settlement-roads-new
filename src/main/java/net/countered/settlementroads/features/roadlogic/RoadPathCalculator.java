@@ -38,7 +38,7 @@ public class RoadPathCalculator {
     }
 
     public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
-            BlockPos start, BlockPos end, int width, ServerWorld serverWorld
+            BlockPos start, BlockPos end, int width, ServerWorld serverWorld, int maxSteps
     ) {
         PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(n -> n.fScore));
         Map<BlockPos, Node> allNodes = new HashMap<>();
@@ -51,8 +51,6 @@ public class RoadPathCalculator {
         Node startNode = new Node(startGround, null, 0.0, heuristic(startGround, endGround));
         openSet.add(startNode);
         allNodes.put(startGround, startNode);
-
-        int maxSteps = 5000;
 
         int d = neighborDistance;
         int[][] neighborOffsets = {
@@ -81,7 +79,7 @@ public class RoadPathCalculator {
                 RegistryEntry<Biome> biomeRegistryEntry = biomeSampler(neighborPos, serverWorld);
                 int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER) || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN) || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 200 : 0;
                 int elevation = Math.abs(y - current.pos.getY());
-                if (elevation > 3) {
+                if (elevation > 2) {
                     continue;
                 }
                 int offsetSum = Math.abs(Math.abs(offset[0])) + Math.abs(offset[1]);
@@ -188,10 +186,10 @@ public class RoadPathCalculator {
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 //if (radius > 1) {
-                    if (dx == -radius && dz == -radius) continue;
-                    if (dx == radius && dz == -radius) continue;
-                    if (dx == -radius && dz == radius) continue;
-                    if (dx == radius && dz == radius) continue;
+                    //if (dx == -radius && dz == -radius) continue;
+                    //if (dx == radius && dz == -radius) continue;
+                    //if (dx == -radius && dz == radius) continue;
+                    //if (dx == radius && dz == radius) continue;
                 //}
                 BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
                 if (!widthPositionsCache.contains(pos)) {
