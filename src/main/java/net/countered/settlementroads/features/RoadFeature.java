@@ -195,11 +195,11 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
     private void placeRoadBlock(StructureWorldAccess structureWorldAccess, BlockState blockStateAtPos, BlockPos surfacePos, List<BlockState> materials, Random deterministicRandom) {
         // If not water, just place the road
         if (!placeAllowedCheck(blockStateAtPos.getBlock())
-                //|| (!structureWorldAccess.getBlockState(surfacePos.down()).isOpaque()
+                || (!structureWorldAccess.getBlockState(surfacePos.down()).isOpaque())
                 //&& !structureWorldAccess.getBlockState(surfacePos.down(2)).isOpaque()
                 //&& !structureWorldAccess.getBlockState(surfacePos.down(3)).isOpaque())
                 //|| structureWorldAccess.getBlockState(surfacePos.up(3)).isOpaque()
-        ){
+        ) {
             return;
         }
         BlockState material = materials.get(deterministicRandom.nextInt(materials.size()));

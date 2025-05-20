@@ -5,6 +5,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BiomeTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.biome.Biome;
 
@@ -51,7 +52,7 @@ public class RoadPathCalculator {
         openSet.add(startNode);
         allNodes.put(startGround, startNode);
 
-        int maxSteps = 3000;
+        int maxSteps = 5000;
 
         int d = neighborDistance;
         int[][] neighborOffsets = {
@@ -78,15 +79,18 @@ public class RoadPathCalculator {
                 if (closedSet.contains(neighborPos)) continue;
 
                 RegistryEntry<Biome> biomeRegistryEntry = biomeSampler(neighborPos, serverWorld);
-                int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER) || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN) || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 500 : 0;
-                double elevation = Math.abs(y - current.pos.getY());
+                int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER) || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN) || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 200 : 0;
+                int elevation = Math.abs(y - current.pos.getY());
                 if (elevation > 3) {
                     continue;
                 }
-                int offsetSum = Math.abs(offset[0]) + Math.abs(offset[1]);
-                double stepCost = (offsetSum == 2 * neighborDistance) ? neighborDistance * 1.414 : neighborDistance;
-
-                double tentativeG = current.gScore + stepCost + elevation * 30 + biomeCost;
+                int offsetSum = Math.abs(Math.abs(offset[0])) + Math.abs(offset[1]);
+                double stepCost = (offsetSum == 2 * neighborDistance) ? 1.5 : 1;
+                int terrainStabilityCost = calculateTerrainStability(neighborPos, y, serverWorld);
+                if (terrainStabilityCost > 2) {
+                    continue;
+                }
+                double tentativeG = current.gScore + stepCost + elevation * 1 + biomeCost;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -107,6 +111,24 @@ public class RoadPathCalculator {
             }
         }
         return Collections.emptyList();
+    }
+
+    private static double heuristic(BlockPos a, BlockPos b) {
+        int dx = a.getX() - b.getX();
+        int dz = a.getZ() - b.getZ();
+        double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
+        return dxzApprox;
+    }
+
+    private static int calculateTerrainStability(BlockPos neighborPos, int y, ServerWorld serverWorld) {
+        int cost = 0;
+        for (Direction direction : Direction.Type.HORIZONTAL) {
+            BlockPos testPos = neighborPos.offset(direction);
+            int testY = heightSampler(testPos.getX(), testPos.getZ(), serverWorld);
+            int elevation = Math.abs(y - testY);
+            cost += elevation;
+        }
+        return cost;
     }
 
     private static List<Records.RoadSegmentPlacement> reconstructPath(
@@ -143,14 +165,6 @@ public class RoadPathCalculator {
         return result;
     }
 
-    private static double heuristic(BlockPos a, BlockPos b) {
-        int dx = a.getX() - b.getX();
-        int dz = a.getZ() - b.getZ();
-        int dy = Math.abs(a.getY() - b.getY());
-        double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
-        return dxzApprox * 100;
-    }
-
     private static class Node {
         BlockPos pos;
         Node parent;
@@ -173,6 +187,12 @@ public class RoadPathCalculator {
 
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
+                //if (radius > 1) {
+                    if (dx == -radius && dz == -radius) continue;
+                    if (dx == radius && dz == -radius) continue;
+                    if (dx == -radius && dz == radius) continue;
+                    if (dx == radius && dz == radius) continue;
+                //}
                 BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
                 if (!widthPositionsCache.contains(pos)) {
                     widthPositionsCache.add(pos);
