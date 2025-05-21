@@ -79,7 +79,7 @@ public class RoadPathCalculator {
                         || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN)
                         || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 50 : 0;
                 int elevation = Math.abs(y - current.pos.getY());
-                if (elevation > 2) {
+                if (elevation > 3) {
                     continue;
                 }
                 int offsetSum = Math.abs(Math.abs(offset[0])) + Math.abs(offset[1]);
@@ -89,7 +89,11 @@ public class RoadPathCalculator {
                     continue;
                 }
                 int yLevelCost = y == 62 ? 20 : 0;
-                double tentativeG = current.gScore + stepCost + elevation * 5 + biomeCost + yLevelCost + terrainStabilityCost;
+                double tentativeG = current.gScore + stepCost
+                        + elevation * 10 * 2             * 2
+                        + biomeCost * 2 * 2              * 2
+                        + yLevelCost * 2 * 2             * 2
+                        + terrainStabilityCost * 4 * 2   * 2;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -116,7 +120,7 @@ public class RoadPathCalculator {
         int dx = a.getX() - b.getX();
         int dz = a.getZ() - b.getZ();
         double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
-        return dxzApprox * 3;
+        return dxzApprox * 25;
     }
 
     private static int calculateTerrainStability(BlockPos neighborPos, int y, ServerWorld serverWorld) {

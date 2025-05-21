@@ -207,7 +207,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         setBlockState(structureWorldAccess, surfacePos.down(), material);
 
         for (int i = 0; i < 10; i++) {
-            if (!structureWorldAccess.getBlockState(surfacePos.up(i)).getBlock().equals(Blocks.AIR) && !blockStateAtPos.isIn(BlockTags.LOGS)) {
+            if (!structureWorldAccess.getBlockState(surfacePos.up(i)).getBlock().equals(Blocks.AIR) && !structureWorldAccess.getBlockState(surfacePos.up(i)).isIn(BlockTags.LOGS)) {
                 setBlockState(structureWorldAccess, surfacePos.up(i), Blocks.AIR.getDefaultState());
             }
             else {
