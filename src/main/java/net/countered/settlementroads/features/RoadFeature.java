@@ -103,10 +103,12 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             List<BlockPos> middlePositions = segmentList.stream().map(Records.RoadSegmentPlacement::middlePos).toList();
             int segmentIndex = 0;
             for (int i = 2; i < segmentList.size() - 2; i++) {
+                segmentIndex++;
                 Records.RoadSegmentPlacement segment = segmentList.get(i);
                 BlockPos currentMiddle = segment.middlePos();
+                // offset to structure
+                if (segmentIndex < 60 || segmentIndex > segmentList.size() - 60) continue;
                 ChunkPos middleChunkPos = new ChunkPos(currentMiddle);
-                segmentIndex++;
                 if (!middleChunkPos.equals(currentChunkPos)) continue;
 
                 BlockPos prevPos = middlePositions.get(i - 2);
@@ -129,7 +131,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     BlockPos correctedYPos = new BlockPos(widthBlock.getX(), averageY, widthBlock.getZ());
                     placeOnSurface(structureWorldAccess, correctedYPos, materials, roadType, random, -1);
                 }
-
                 addDecoration(structureWorldAccess, averagedPos, segmentIndex, nextPos, prevPos, middlePositions);
             }
         }
