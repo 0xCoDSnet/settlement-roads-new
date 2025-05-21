@@ -19,7 +19,7 @@ public class RoadPathCalculator {
     // Cache for height values, mapping hashed (x, z) to height (y)
     public static final Map<Long, Integer> heightCache = new ConcurrentHashMap<>();
 
-    // Helper method to hash (x, зеро зет) coordinates into a single long
+    // Helper method to hash coordinates into a single long
     private static long hashXZ(int x, int z) {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
@@ -59,7 +59,6 @@ public class RoadPathCalculator {
         };
 
         while (!openSet.isEmpty() && maxSteps-- > 0) {
-            //System.out.println(maxSteps);
             Node current = openSet.poll();
 
             if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
@@ -73,7 +72,6 @@ public class RoadPathCalculator {
                 BlockPos neighborXZ = current.pos.add(offset[0], 0, offset[1]);
                 int y = heightSampler(neighborXZ.getX(), neighborXZ.getZ(), serverWorld);
                 BlockPos neighborPos = new BlockPos(neighborXZ.getX(), y, neighborXZ.getZ());
-
                 if (closedSet.contains(neighborPos)) continue;
 
                 RegistryEntry<Biome> biomeRegistryEntry = biomeSampler(neighborPos, serverWorld);
@@ -90,8 +88,8 @@ public class RoadPathCalculator {
                 if (terrainStabilityCost > 2) {
                     continue;
                 }
-                int yLevelCost = y == 62 ? 5 : 0;
-                double tentativeG = current.gScore + stepCost + elevation * 1 + biomeCost + yLevelCost + terrainStabilityCost;
+                int yLevelCost = y == 62 ? 20 : 0;
+                double tentativeG = current.gScore + stepCost + elevation * 5 + biomeCost + yLevelCost + terrainStabilityCost;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -118,7 +116,7 @@ public class RoadPathCalculator {
         int dx = a.getX() - b.getX();
         int dz = a.getZ() - b.getZ();
         double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
-        return dxzApprox * 2;
+        return dxzApprox * 3;
     }
 
     private static int calculateTerrainStability(BlockPos neighborPos, int y, ServerWorld serverWorld) {
@@ -148,14 +146,25 @@ public class RoadPathCalculator {
 
         for (Node node : pathNodes) {
             BlockPos pos = node.pos;
-
             List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, Collections.emptyList());
-            for (BlockPos interp : interpolated) {
-                Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache);
-                roadSegments.put(interp, widthSetInterp);
+            boolean diagonal1 = false;
+            boolean diagonal2 = false;
+            if (!interpolated.isEmpty()) {
+                if ((pos.getX() - interpolated.get(0).getX() < 0 && pos.getZ() - interpolated.get(0).getZ() > 0)
+                        || (pos.getX() - interpolated.get(0).getX() > 0 && pos.getZ() - interpolated.get(0).getZ() < 0)){
+                    diagonal1 = true;
+                }
+                else if ((pos.getX() - interpolated.get(0).getX() < 0 && pos.getZ() - interpolated.get(0).getZ() < 0)
+                            || (pos.getX() - interpolated.get(0).getX() > 0 && pos.getZ() - interpolated.get(0).getZ() > 0)) {
+                    diagonal2 = true;
+                }
+                for (BlockPos interp : interpolated) {
+                    Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache, diagonal1, diagonal2);
+                    roadSegments.put(interp, widthSetInterp);
+                }
             }
 
-            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache);
+            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache, diagonal1, diagonal2);
             roadSegments.put(pos, widthSet);
         }
 
@@ -179,7 +188,7 @@ public class RoadPathCalculator {
         }
     }
 
-    private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache) {
+    private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache, boolean diagonal1, boolean diagonal2) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
 
         int centerX = center.getX();
@@ -188,12 +197,16 @@ public class RoadPathCalculator {
 
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
-                //if (radius > 1) {
-                    //if (dx == -radius && dz == -radius) continue;
-                    //if (dx == radius && dz == -radius) continue;
-                    //if (dx == -radius && dz == radius) continue;
-                    //if (dx == radius && dz == radius) continue;
-                //}
+                if (diagonal2) {
+                    if ((dx == -radius && dz == -radius) || (dx == radius && dz == radius)) {
+                        continue;
+                    }
+                }
+                if (diagonal1) {
+                    if ((dx == -radius && dz == radius) || (dx == radius && dz == -radius)) {
+                        continue;
+                    }
+                }
                 BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
                 if (!widthPositionsCache.contains(pos)) {
                     widthPositionsCache.add(pos);

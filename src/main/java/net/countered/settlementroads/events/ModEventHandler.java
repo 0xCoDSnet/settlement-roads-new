@@ -28,8 +28,9 @@ import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 
 public class ModEventHandler {
 
+    private static final int THREAD_COUNT= 7;
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static ExecutorService executor = Executors.newFixedThreadPool(7);
+    private static ExecutorService executor = Executors.newFixedThreadPool(THREAD_COUNT);
     private static final ConcurrentHashMap<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
     public static void register() {
@@ -97,7 +98,7 @@ public class ModEventHandler {
 
     private static void restartExecutorIfNeeded() {
         if (executor.isShutdown() || executor.isTerminated()) {
-            executor = Executors.newFixedThreadPool(2);
+            executor = Executors.newFixedThreadPool(THREAD_COUNT);
             LOGGER.info("SettlementRoads: ExecutorService restarted.");
         }
     }

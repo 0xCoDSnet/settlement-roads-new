@@ -14,33 +14,19 @@ public class SettlementRoads implements ModInitializer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
-	// TODO
-	// in  feature add new village connection + cache
-	// Check cache in servertickevents scan world chunks, generate road, add to world
-	// in feature read road data and place
-
+	// -5233360391469774945
 
 	// Fix:
-	// Caching should not change already established connections (broken roads) test?
 	// Remove config for loading chunks
 	// Clean snow from roads
-	//
 
-	// Change:
-	// Artificial roads look bad
-	// Make road type return enum
-
-	// Add:
-	//
 
 	// OPTIONAL
-	// Possibly broken roads when recaching on world reload?
 	// Biome specific road changes
 	// Location lag reducing (async locator?)/ structure essentials / place instant roads?
 	// Bridges
 	// Tunnels
 	// fix roads on snow icebergs
-	// Remove placed blocks from caches
 	// place slabs on artificial roads
 
 	@Override
