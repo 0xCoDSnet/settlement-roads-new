@@ -59,11 +59,11 @@ public class RoadPathCalculator {
         };
 
         while (!openSet.isEmpty() && maxSteps-- > 0) {
-            System.out.println(maxSteps);
+            //System.out.println(maxSteps);
             Node current = openSet.poll();
 
             if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
-                System.out.println("Found path!");
+                System.out.println("Found path! " + current.pos );
                 return reconstructPath(current, width, interpolatedSegments);
             }
 
@@ -77,7 +77,9 @@ public class RoadPathCalculator {
                 if (closedSet.contains(neighborPos)) continue;
 
                 RegistryEntry<Biome> biomeRegistryEntry = biomeSampler(neighborPos, serverWorld);
-                int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER) || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN) || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 200 : 0;
+                int biomeCost = biomeRegistryEntry.isIn(BiomeTags.IS_RIVER)
+                        || biomeRegistryEntry.isIn(BiomeTags.IS_OCEAN)
+                        || biomeRegistryEntry.isIn(BiomeTags.IS_DEEP_OCEAN) ? 50 : 0;
                 int elevation = Math.abs(y - current.pos.getY());
                 if (elevation > 2) {
                     continue;
@@ -88,7 +90,8 @@ public class RoadPathCalculator {
                 if (terrainStabilityCost > 2) {
                     continue;
                 }
-                double tentativeG = current.gScore + stepCost + elevation * 1 + biomeCost;
+                int yLevelCost = y == 62 ? 5 : 0;
+                double tentativeG = current.gScore + stepCost + elevation * 1 + biomeCost + yLevelCost + terrainStabilityCost;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -115,7 +118,7 @@ public class RoadPathCalculator {
         int dx = a.getX() - b.getX();
         int dz = a.getZ() - b.getZ();
         double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
-        return dxzApprox;
+        return dxzApprox * 2;
     }
 
     private static int calculateTerrainStability(BlockPos neighborPos, int y, ServerWorld serverWorld) {

@@ -29,7 +29,7 @@ import static net.countered.settlementroads.SettlementRoads.MOD_ID;
 public class ModEventHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    private static ExecutorService executor = Executors.newFixedThreadPool(2);
+    private static ExecutorService executor = Executors.newFixedThreadPool(7);
     private static final ConcurrentHashMap<String, Future<?>> runningTasks = new ConcurrentHashMap<>();
 
     public static void register() {
