@@ -1,6 +1,5 @@
 package net.countered.settlementroads.features.decoration;
 
-import net.minecraft.block.Blocks;
 import net.minecraft.state.property.Properties;
 import net.minecraft.state.property.Property;
 import net.minecraft.util.math.BlockPos;
@@ -57,16 +56,5 @@ public abstract class OrientedDecoration extends Decoration{
             case 4 -> new DirectionProperties(Direction.SOUTH, Properties.NORTH, Properties.SOUTH);
             default -> new DirectionProperties(Direction.WEST,  Properties.EAST,  Properties.WEST);
         };
-    }
-
-    protected void placeFenceStructure(BlockPos pos, DirectionProperties props) {
-        StructureWorldAccess world = this.getWorld();
-
-        // Hanging Lantern oder Sign bereits vorher setzen!
-        world.setBlockState(pos.up(3).offset(props.offsetDirection.getOpposite()), Blocks.SPRUCE_FENCE.getDefaultState().with(props.directionProperty, true), 3);
-        world.setBlockState(pos.up(0), Blocks.SPRUCE_FENCE.getDefaultState(), 3);
-        world.setBlockState(pos.up(1), Blocks.SPRUCE_FENCE.getDefaultState(), 3);
-        world.setBlockState(pos.up(2), Blocks.SPRUCE_FENCE.getDefaultState(), 3);
-        world.setBlockState(pos.up(3), Blocks.SPRUCE_FENCE.getDefaultState().with(props.reverseDirectionProperty, true), 3);
     }
 }

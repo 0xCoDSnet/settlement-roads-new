@@ -2,6 +2,7 @@ package net.countered.settlementroads.helpers;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
@@ -10,6 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Records {
+
+    public record WoodAssets(Block fence, Block hangingSign, Block planks) {}
 
     public record RoadDecoration(BlockPos placePos, Vec3i vector, int centerBlockCount, String signText, boolean isStart) {}
 
