@@ -62,7 +62,7 @@ public class RoadPathCalculator {
             Node current = openSet.poll();
 
             if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
-                LOGGER.info("Found path! " + current.pos);
+                LOGGER.debug("Found path! " + current.pos);
                 return reconstructPath(current, width, interpolatedSegments);
             }
 

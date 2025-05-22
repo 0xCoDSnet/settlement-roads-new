@@ -95,23 +95,24 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         int averagingRadius = ModConfig.averagingRadius;
         List<Records.RoadData> roadDataList = structureWorldAccess.toServerWorld().getAttached(WorldDataAttachment.ROAD_DATA_LIST);
         if (roadDataList == null) return;
-
         ChunkPos currentChunkPos = new ChunkPos(context.getOrigin());
 
+        Set<BlockPos> posAlreadyContainsSegment = new HashSet<>();
         for (Records.RoadData data : roadDataList) {
             int roadType = data.roadType();
             List<BlockState> materials = data.materials();
             List<Records.RoadSegmentPlacement> segmentList = data.roadSegmentList();
-
+            
             List<BlockPos> middlePositions = segmentList.stream().map(Records.RoadSegmentPlacement::middlePos).toList();
             int segmentIndex = 0;
             for (int i = 2; i < segmentList.size() - 2; i++) {
+                if (posAlreadyContainsSegment.contains(middlePositions.get(i))) continue;
                 segmentIndex++;
                 Records.RoadSegmentPlacement segment = segmentList.get(i);
-                BlockPos currentMiddle = segment.middlePos();
+                BlockPos segmentMiddlePos = segment.middlePos();
                 // offset to structure
                 if (segmentIndex < 60 || segmentIndex > segmentList.size() - 60) continue;
-                ChunkPos middleChunkPos = new ChunkPos(currentMiddle);
+                ChunkPos middleChunkPos = new ChunkPos(segmentMiddlePos);
                 if (!middleChunkPos.equals(currentChunkPos)) continue;
 
                 BlockPos prevPos = middlePositions.get(i - 2);
@@ -125,8 +126,8 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     }
                 }
 
-                int averageY = (int) Math.round(heights.stream().mapToDouble(Double::doubleValue).average().orElse(currentMiddle.getY()));
-                BlockPos averagedPos = new BlockPos(currentMiddle.getX(), averageY, currentMiddle.getZ());
+                int averageY = (int) Math.round(heights.stream().mapToDouble(Double::doubleValue).average().orElse(segmentMiddlePos.getY()));
+                BlockPos averagedPos = new BlockPos(segmentMiddlePos.getX(), averageY, segmentMiddlePos.getZ());
 
                 Random random = context.getRandom();
                 if (!ModConfig.placeWaypoints) {
@@ -136,6 +137,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
                     }
                 }
                 addDecoration(structureWorldAccess, roadDecorationPlacementPositions, averagedPos, segmentIndex, nextPos, prevPos, middlePositions, roadType, random);
+                posAlreadyContainsSegment.add(segmentMiddlePos);
             }
         }
     }
