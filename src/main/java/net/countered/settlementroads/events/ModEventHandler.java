@@ -53,7 +53,7 @@ public class ModEventHandler {
             Future<?> task = runningTasks.remove(serverWorld.getRegistryKey().getValue().toString());
             if (task != null && !task.isDone()) {
                 task.cancel(true);
-                LOGGER.info("Aborted running road task for world: {}", serverWorld.getRegistryKey().getValue());
+                LOGGER.debug("Aborted running road task for world: {}", serverWorld.getRegistryKey().getValue());
             }
         });
 
@@ -67,7 +67,7 @@ public class ModEventHandler {
             runningTasks.values().forEach(future -> future.cancel(true));
             runningTasks.clear();
             executor.shutdownNow();
-            LOGGER.info("SettlementRoads: ExecutorService shut down.");
+            LOGGER.debug("SettlementRoads: ExecutorService shut down.");
         });
     }
 
@@ -99,7 +99,7 @@ public class ModEventHandler {
     private static void restartExecutorIfNeeded() {
         if (executor.isShutdown() || executor.isTerminated()) {
             executor = Executors.newFixedThreadPool(THREAD_COUNT);
-            LOGGER.info("SettlementRoads: ExecutorService restarted.");
+            LOGGER.debug("SettlementRoads: ExecutorService restarted.");
         }
     }
 }

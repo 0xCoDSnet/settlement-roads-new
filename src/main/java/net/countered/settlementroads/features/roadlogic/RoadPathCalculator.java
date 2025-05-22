@@ -1,5 +1,6 @@
 package net.countered.settlementroads.features.roadlogic;
 
+import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.helpers.Records;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.BiomeTags;
@@ -8,11 +9,15 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.biome.Biome;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class RoadPathCalculator {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
     private final static int neighborDistance = 4;
 
@@ -24,19 +29,6 @@ public class RoadPathCalculator {
         return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
-    // Height sampler method
-    private static int heightSampler(int x, int z, ServerWorld serverWorld) {
-        long key = hashXZ(x, z);
-        return heightCache.computeIfAbsent(key, k -> serverWorld.getChunkManager()
-                .getChunkGenerator()
-                .getHeightInGround(x, z, Heightmap.Type.WORLD_SURFACE_WG, serverWorld, serverWorld.getChunkManager().getNoiseConfig()));
-    }
-
-    // Biome sampler method
-    private static RegistryEntry<Biome> biomeSampler(BlockPos pos, ServerWorld serverWorld) {
-        return serverWorld.getBiome(pos);
-    }
-
     public static List<Records.RoadSegmentPlacement> calculateAStarRoadPath(
             BlockPos start, BlockPos end, int width, ServerWorld serverWorld, int maxSteps
     ) {
@@ -44,6 +36,14 @@ public class RoadPathCalculator {
         Map<BlockPos, Node> allNodes = new HashMap<>();
         Set<BlockPos> closedSet = new HashSet<>();
         Map<BlockPos, List<BlockPos>> interpolatedSegments = new HashMap<>();
+
+        int startX = snapToGrid(start.getX(), neighborDistance);
+        int startZ = snapToGrid(start.getZ(), neighborDistance);
+        int endX = snapToGrid(end.getX(), neighborDistance);
+        int endZ = snapToGrid(end.getZ(), neighborDistance);
+
+        start = new BlockPos(startX, start.getY(), startZ);
+        end = new BlockPos(endX, end.getY(), endZ);
 
         BlockPos startGround = new BlockPos(start.getX(), heightSampler(start.getX(), start.getZ(), serverWorld), start.getZ());
         BlockPos endGround = new BlockPos(end.getX(), heightSampler(end.getX(), end.getZ(), serverWorld), end.getZ());
@@ -62,11 +62,12 @@ public class RoadPathCalculator {
             Node current = openSet.poll();
 
             if (current.pos.withY(0).getManhattanDistance(endGround.withY(0)) < neighborDistance * 2) {
-                System.out.println("Found path! " + current.pos );
+                LOGGER.info("Found path! " + current.pos);
                 return reconstructPath(current, width, interpolatedSegments);
             }
 
             closedSet.add(current.pos);
+            allNodes.remove(current.pos);
 
             for (int[] offset : neighborOffsets) {
                 BlockPos neighborXZ = current.pos.add(offset[0], 0, offset[1]);
@@ -90,10 +91,10 @@ public class RoadPathCalculator {
                 }
                 int yLevelCost = y == 62 ? 20 : 0;
                 double tentativeG = current.gScore + stepCost
-                        + elevation * 10 * 2             * 2
-                        + biomeCost * 2 * 2              * 2
-                        + yLevelCost * 2 * 2             * 2
-                        + terrainStabilityCost * 4 * 2   * 2;
+                        + elevation * 40
+                        + biomeCost * 8
+                        + yLevelCost * 8
+                        + terrainStabilityCost * 16;
 
                 Node neighbor = allNodes.get(neighborPos);
                 if (neighbor == null || tentativeG < neighbor.gScore) {
@@ -120,7 +121,7 @@ public class RoadPathCalculator {
         int dx = a.getX() - b.getX();
         int dz = a.getZ() - b.getZ();
         double dxzApprox = Math.abs(dx) + Math.abs(dz) - 0.6 * Math.min(Math.abs(dx), Math.abs(dz));
-        return dxzApprox * 25;
+        return dxzApprox * 30;
     }
 
     private static int calculateTerrainStability(BlockPos neighborPos, int y, ServerWorld serverWorld) {
@@ -130,6 +131,9 @@ public class RoadPathCalculator {
             int testY = heightSampler(testPos.getX(), testPos.getZ(), serverWorld);
             int elevation = Math.abs(y - testY);
             cost += elevation;
+            if (cost > 2) {
+                return Integer.MAX_VALUE;
+            }
         }
         return cost;
     }
@@ -179,6 +183,19 @@ public class RoadPathCalculator {
         return result;
     }
 
+    // Height sampler method
+    private static int heightSampler(int x, int z, ServerWorld serverWorld) {
+        long key = hashXZ(x, z);
+        return heightCache.computeIfAbsent(key, k -> serverWorld.getChunkManager()
+                .getChunkGenerator()
+                .getHeightInGround(x, z, Heightmap.Type.WORLD_SURFACE_WG, serverWorld, serverWorld.getChunkManager().getNoiseConfig()));
+    }
+
+    // Biome sampler method
+    private static RegistryEntry<Biome> biomeSampler(BlockPos pos, ServerWorld serverWorld) {
+        return serverWorld.getBiome(pos);
+    }
+
     private static class Node {
         BlockPos pos;
         Node parent;
@@ -190,6 +207,10 @@ public class RoadPathCalculator {
             this.gScore = gScore;
             this.fScore = fScore;
         }
+    }
+
+    private static int snapToGrid(int value, int gridSize) {
+        return Math.floorDiv(value, gridSize) * gridSize;
     }
 
     private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache, boolean diagonal1, boolean diagonal2) {

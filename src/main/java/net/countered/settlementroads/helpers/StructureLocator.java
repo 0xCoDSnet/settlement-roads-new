@@ -1,6 +1,5 @@
 package net.countered.settlementroads.helpers;
 
-import com.google.common.base.Stopwatch;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -16,7 +15,6 @@ import net.minecraft.registry.entry.RegistryEntryList;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.gen.structure.Structure;
 import org.slf4j.Logger;
@@ -35,7 +33,7 @@ public class StructureLocator {
     );
 
     public static void locateConfiguredStructure(ServerWorld serverWorld, int locateCount, boolean locateAtPlayer) {
-        LOGGER.info("Locating " + locateCount + " " + ModConfig.structureToLocate);
+        LOGGER.debug("Locating " + locateCount + " " + ModConfig.structureToLocate);
         try {
             for (int x = 0; x < locateCount; x++) {
                 if (locateAtPlayer) {
@@ -56,17 +54,14 @@ public class StructureLocator {
         Registry<Structure> registry = serverWorld.getRegistryManager().get(RegistryKeys.STRUCTURE);
         RegistryEntryList<Structure> registryEntryList = (RegistryEntryList<Structure>)getStructureListForPredicate(predicate, registry)
                 .orElseThrow(() -> STRUCTURE_INVALID_EXCEPTION.create(predicate.asString()));
-        Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
         Pair<BlockPos, RegistryEntry<Structure>> pair = serverWorld.getChunkManager()
                 .getChunkGenerator()
                 .locateStructure(serverWorld, registryEntryList, locatePos, 100, true);
-        System.out.println(stopwatch.elapsed());
-        stopwatch.stop();
         if (pair == null) {
             throw STRUCTURE_NOT_FOUND_EXCEPTION.create(predicate.asString());
         } else {
             BlockPos structureLocation = pair.getFirst();
-            LOGGER.info("Structure found at " + structureLocation);
+            LOGGER.debug("Structure found at " + structureLocation);
             serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS).addStructure(structureLocation);
         }
     }

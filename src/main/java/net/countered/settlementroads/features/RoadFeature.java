@@ -5,6 +5,7 @@ import net.countered.settlementroads.SettlementRoads;
 import net.countered.settlementroads.config.ModConfig;
 import net.countered.settlementroads.features.config.RoadFeatureConfig;
 import net.countered.settlementroads.features.decoration.*;
+import net.countered.settlementroads.features.roadlogic.RoadPathCalculator;
 import net.countered.settlementroads.helpers.Records;
 import net.countered.settlementroads.helpers.StructureConnector;
 import net.countered.settlementroads.persistence.attachments.WorldDataAttachment;
@@ -29,15 +30,14 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
-
-    // Road post-processing positions
-    public static Set<BlockPos> roadPostProcessingPositions = ConcurrentHashMap.newKeySet();
 
     public static final Set<Block> dontPlaceHere = new HashSet<>();
     static {
@@ -61,13 +61,16 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
 
     @Override
     public boolean generate(FeatureContext<RoadFeatureConfig> context) {
+        if (RoadPathCalculator.heightCache.size() > 100_000){
+            RoadPathCalculator.heightCache.clear();
+        }
         ServerWorld serverWorld = context.getWorld().toServerWorld();
         StructureWorldAccess structureWorldAccess = context.getWorld();
         Records.StructureLocationData structureLocationData = serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS);
         if (structureLocationData == null) {
             return false;
         }
-        List<BlockPos> villageLocations = structureLocationData.structureLocations();
+        List<BlockPos> villageLocations = structureLocationData.structureLocations();;
         tryFindNewVillageConnection(villageLocations, serverWorld);
         Set<Decoration> roadDecorationCache = new HashSet<>();
         runRoadLogic(structureWorldAccess, context, roadDecorationCache);
@@ -167,7 +170,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             shiftedPos = isEnd ? placePos.add(orthogonalVector.multiply(2)) : placePos.subtract(orthogonalVector.multiply(2));
             roadDecorationPlacementPositions.add(new DistanceSignDecoration(shiftedPos, orthogonalVector, structureWorldAccess, isEnd, String.valueOf(middleBlockPositions.size())));
         }
-        if (segmentIndex % 59 == 0) {
+        else if (segmentIndex % 59 == 0) {
             boolean leftRoadSide = random.nextBoolean();
             shiftedPos = leftRoadSide ? placePos.add(orthogonalVector.multiply(2)) : placePos.subtract(orthogonalVector.multiply(2));
             shiftedPos = shiftedPos.withY(structureWorldAccess.getTopY(Heightmap.Type.WORLD_SURFACE_WG, shiftedPos.getX(), shiftedPos.getZ()));
@@ -193,8 +196,6 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         // place road
         if (natural == 0 || random.nextDouble() < naturalBlockChance) {
             placeRoadBlock(structureWorldAccess, blockStateAtPos, surfacePos, material, random);
-            // add road block position to post process
-            roadPostProcessingPositions.add(surfacePos.down()); //TODO
         }
     }
 

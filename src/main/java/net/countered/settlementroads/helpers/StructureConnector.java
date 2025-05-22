@@ -27,7 +27,6 @@ public class StructureConnector {
     }
 
     private static void createNewStructureConnection(ServerWorld serverWorld) {
-        System.out.println(("creating new structure connection"));
         List<BlockPos> villagePosList = serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS).structureLocations();
         BlockPos latestVillagePos = villagePosList.get(villagePosList.size() - 1);
         Records.StructureLocationData structureLocationData = serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS);
