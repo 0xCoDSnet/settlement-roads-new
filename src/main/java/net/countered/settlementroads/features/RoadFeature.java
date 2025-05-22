@@ -71,18 +71,18 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             return false;
         }
         List<BlockPos> villageLocations = structureLocationData.structureLocations();;
-        tryFindNewVillageConnection(villageLocations, serverWorld);
+        tryFindNewStructureConnection(villageLocations, serverWorld);
         Set<Decoration> roadDecorationCache = new HashSet<>();
         runRoadLogic(structureWorldAccess, context, roadDecorationCache);
         RoadStructures.tryPlaceDecorations(roadDecorationCache);
         return true;
     }
 
-    private void tryFindNewVillageConnection(List<BlockPos> villageLocations, ServerWorld serverWorld) {
+    private void tryFindNewStructureConnection(List<BlockPos> villageLocations, ServerWorld serverWorld) {
         if (villageLocations == null || villageLocations.size() < ModConfig.maxLocatingCount) {
             chunksForLocatingCounter++;
             if (chunksForLocatingCounter > 300) {
-                List<Records.VillageConnection> connectionList= serverWorld.getAttached(WorldDataAttachment.CONNECTED_VILLAGES);
+                List<Records.StructureConnection> connectionList= serverWorld.getAttached(WorldDataAttachment.CONNECTED_STRUCTURES);
                 serverWorld.getServer().execute(() -> {
                     StructureConnector.cacheNewConnection(serverWorld, true);
                 });
@@ -102,7 +102,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
             int roadType = data.roadType();
             List<BlockState> materials = data.materials();
             List<Records.RoadSegmentPlacement> segmentList = data.roadSegmentList();
-            
+
             List<BlockPos> middlePositions = segmentList.stream().map(Records.RoadSegmentPlacement::middlePos).toList();
             int segmentIndex = 0;
             for (int i = 2; i < segmentList.size() - 2; i++) {

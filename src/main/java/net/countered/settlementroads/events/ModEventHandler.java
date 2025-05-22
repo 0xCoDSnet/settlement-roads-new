@@ -72,8 +72,8 @@ public class ModEventHandler {
     }
 
     private static void tryGenerateNewRoads(ServerWorld serverWorld, Boolean async, int steps) {
-        if (!StructureConnector.cachedVillageConnections.isEmpty()) {
-            Records.VillageConnection villageConnection = StructureConnector.cachedVillageConnections.poll();
+        if (!StructureConnector.cachedStructureConnections.isEmpty()) {
+            Records.StructureConnection structureConnection = StructureConnector.cachedStructureConnections.poll();
             ConfiguredFeature<?, ?> feature = serverWorld.getRegistryManager()
                     .get(RegistryKeys.CONFIGURED_FEATURE)
                     .get(RoadFeature.ROAD_FEATURE_KEY);
@@ -82,7 +82,7 @@ public class ModEventHandler {
                 if (async) {
                     Future<?> future = executor.submit(() -> {
                         try {
-                            new Road(serverWorld, villageConnection, roadConfig).generateRoad(steps);
+                            new Road(serverWorld, structureConnection, roadConfig).generateRoad(steps);
                         } catch (Exception e) {
                             LOGGER.error("Error generating road", e);
                         }
@@ -90,7 +90,7 @@ public class ModEventHandler {
                     runningTasks.put(serverWorld.getRegistryKey().getValue().toString(), future);
                 }
                 else {
-                    new Road(serverWorld, villageConnection, roadConfig).generateRoad(steps);
+                    new Road(serverWorld, structureConnection, roadConfig).generateRoad(steps);
                 }
             }
         }

@@ -14,9 +14,9 @@ import java.util.List;
 public class WorldDataAttachment {
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
 
-    public static final AttachmentType<List<Records.VillageConnection>> CONNECTED_VILLAGES = AttachmentRegistry.createPersistent(
+    public static final AttachmentType<List<Records.StructureConnection>> CONNECTED_STRUCTURES = AttachmentRegistry.createPersistent(
             new Identifier(SettlementRoads.MOD_ID, "connected_villages"),
-            Codec.list(Records.VillageConnection.CODEC)
+            Codec.list(Records.StructureConnection.CODEC)
     );
 
 

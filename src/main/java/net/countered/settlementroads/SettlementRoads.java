@@ -17,17 +17,12 @@ public class SettlementRoads implements ModInitializer {
 	// -5233360391469774945
 
 	// Fix:
-	// Remove config for loading chunks
 	// Clean snow from roads
 
-
 	// OPTIONAL
-	// Biome specific road changes
 	// Location lag reducing (async locator?)/ structure essentials / place instant roads?
 	// Bridges
 	// Tunnels
-	// fix roads on snow icebergs
-	// place slabs on artificial roads
 
 	@Override
 	public void onInitialize() {

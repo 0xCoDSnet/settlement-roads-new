@@ -15,12 +15,12 @@ import java.util.List;
 public class Road {
 
     ServerWorld serverWorld;
-    Records.VillageConnection villageConnection;
+    Records.StructureConnection structureConnection;
     RoadFeatureConfig context;
 
-    public Road(ServerWorld serverWorld, Records.VillageConnection villageConnection, RoadFeatureConfig config) {
+    public Road(ServerWorld serverWorld, Records.StructureConnection structureConnection, RoadFeatureConfig config) {
         this.serverWorld = serverWorld;
-        this.villageConnection = villageConnection;
+        this.structureConnection = structureConnection;
         this.context = config;
     }
 
@@ -34,8 +34,8 @@ public class Road {
         }
         List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(random, context) : getRandomArtificialRoadMaterials(random, context);
 
-        BlockPos start = villageConnection.from();
-        BlockPos end = villageConnection.to();
+        BlockPos start = structureConnection.from();
+        BlockPos end = structureConnection.to();
 
         List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld, maxSteps);
 

@@ -45,12 +45,12 @@ public class Records {
                 .listOf()
                 .xmap(StructureLocationData::new, StructureLocationData::structureLocations);
     }
-    public record VillageConnection(BlockPos from, BlockPos to) {
-        public static final Codec<VillageConnection> CODEC = RecordCodecBuilder.create(instance ->
+    public record StructureConnection(BlockPos from, BlockPos to) {
+        public static final Codec<StructureConnection> CODEC = RecordCodecBuilder.create(instance ->
                 instance.group(
-                        BlockPos.CODEC.fieldOf("from").forGetter(VillageConnection::from),
-                        BlockPos.CODEC.fieldOf("to").forGetter(VillageConnection::to)
-                ).apply(instance, VillageConnection::new)
+                        BlockPos.CODEC.fieldOf("from").forGetter(StructureConnection::from),
+                        BlockPos.CODEC.fieldOf("to").forGetter(StructureConnection::to)
+                ).apply(instance, StructureConnection::new)
         );
     }
 }

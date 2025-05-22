@@ -15,7 +15,7 @@ import java.util.Queue;
 public class StructureConnector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SettlementRoads.MOD_ID);
-    public static Queue<Records.VillageConnection> cachedVillageConnections = new ArrayDeque<>();
+    public static Queue<Records.StructureConnection> cachedStructureConnections = new ArrayDeque<>();
     
     public static void cacheNewConnection(ServerWorld serverWorld, boolean locateAtPlayer) {
         StructureLocator.locateConfiguredStructure(serverWorld, 1, locateAtPlayer);
@@ -32,23 +32,23 @@ public class StructureConnector {
         Records.StructureLocationData structureLocationData = serverWorld.getAttached(WorldDataAttachment.STRUCTURE_LOCATIONS);
         List<BlockPos> worldStructureLocations = structureLocationData.structureLocations();
 
-        BlockPos closestVillage = findClosestVillage(latestVillagePos, worldStructureLocations);
+        BlockPos closestVillage = findClosestStructure(latestVillagePos, worldStructureLocations);
 
         if (closestVillage != null) {
-            List<Records.VillageConnection> connections = new ArrayList<>(
-                    serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_VILLAGES, ArrayList::new)
+            List<Records.StructureConnection> connections = new ArrayList<>(
+                    serverWorld.getAttachedOrCreate(WorldDataAttachment.CONNECTED_STRUCTURES, ArrayList::new)
             );
             if (!connectionExists(connections, latestVillagePos, closestVillage)) {
-                Records.VillageConnection villageConnection = new Records.VillageConnection(latestVillagePos, closestVillage);
-                connections.add(villageConnection);
-                serverWorld.setAttached(WorldDataAttachment.CONNECTED_VILLAGES, connections);
-                cachedVillageConnections.add(villageConnection);
+                Records.StructureConnection structureConnection = new Records.StructureConnection(latestVillagePos, closestVillage);
+                connections.add(structureConnection);
+                serverWorld.setAttached(WorldDataAttachment.CONNECTED_STRUCTURES, connections);
+                cachedStructureConnections.add(structureConnection);
             }
         }
     }
 
-    private static boolean connectionExists(List<Records.VillageConnection> existingConnections, BlockPos a, BlockPos b) {
-        for (Records.VillageConnection connection : existingConnections) {
+    private static boolean connectionExists(List<Records.StructureConnection> existingConnections, BlockPos a, BlockPos b) {
+        for (Records.StructureConnection connection : existingConnections) {
             if ((connection.from().equals(a) && connection.to().equals(b)) ||
                     (connection.to().equals(b) && connection.from().equals(a))) {
                 return true;
@@ -57,7 +57,7 @@ public class StructureConnector {
         return false;
     }
 
-    private static BlockPos findClosestVillage(BlockPos currentVillage, List<BlockPos> allVillages) {
+    private static BlockPos findClosestStructure(BlockPos currentVillage, List<BlockPos> allVillages) {
         BlockPos closestVillage = null;
         double minDistance = Double.MAX_VALUE;
 
