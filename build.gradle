@@ -1,6 +1,10 @@
+import net.darkhax.curseforgegradle.TaskPublishCurseForge
+
 plugins {
 	id 'fabric-loom' version '1.9-SNAPSHOT'
 	id 'maven-publish'
+	id "com.modrinth.minotaur" version "2.+"
+	id 'net.darkhax.curseforgegradle' version '1.1.15'
 }
 
 version = project.mod_version
@@ -35,7 +39,41 @@ dependencies {
 	modImplementation include ("maven.modrinth:midnightlib:${project.midnightlib_version}")
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+}
+
+
+modrinth {
+	token = System.getenv("MODRINTH_TOKEN") // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
+	projectId = "countereds-settlement-roads" // This can be the project ID or the slug. Either will work!
+	versionNumber = "${mod_version}" // You don't need to set this manually. Will fail if Modrinth has this version already
+	versionType = "release" // This is the default -- can also be `beta` or `alpha`
+	uploadFile = remapJar // With Loom, this MUST be set to `remapJar` instead of `jar`!
+	gameVersions = ["1.20.1"] // Must be an array, even with only one version
+	loaders = ["forge"] // Must also be an array - no need to specify this if you're using Loom or ForgeGradle
+	changelog = file("changelog.md").text
+	versionName = "Countered's Settlement Roads + Sinytra ${mod_version}" // This is the name of the version that will be displayed on Modrinth
+	dependencies {
+		embedded.project "midnightlib" // Declare midnightlib as an embedded dependency
+		required.project "connector"
+		required.project "forgified-fabric-api"
+	}
+}
+
+// Define tasks
+tasks.register("curseforge", TaskPublishCurseForge) {
+	apiToken = System.getenv("CURSEFORGE_TOKEN")
+	def projectId = "1140708"
+
+	def mainFile = upload(projectId, remapJar)
+	mainFile.addModLoader("forge")
+	mainFile.changelog = file("changelog.md")
+	mainFile.changelogType = "markdown"
+	mainFile.displayName = "Countered's Settlement Roads + Sinytra ${mod_version}"
+	mainFile.releaseType = "release"
+
+	mainFile.addEmbedded("midnightlib")
+	mainFile.addRequirement("sinytra-connector")
+	mainFile.addRequirement("forgified-fabric-api")
 }
 
 processResources {
