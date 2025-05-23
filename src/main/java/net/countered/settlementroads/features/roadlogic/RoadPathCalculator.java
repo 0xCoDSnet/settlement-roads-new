@@ -155,24 +155,29 @@ public class RoadPathCalculator {
         for (Node node : pathNodes) {
             BlockPos pos = node.pos;
             List<BlockPos> interpolated = interpolatedPathMap.getOrDefault(pos, Collections.emptyList());
-            boolean diagonal1 = false;
-            boolean diagonal2 = false;
+            RoadDirection roadDirection = RoadDirection.X_AXIS;
             if (!interpolated.isEmpty()) {
-                if ((pos.getX() - interpolated.get(0).getX() < 0 && pos.getZ() - interpolated.get(0).getZ() > 0)
-                        || (pos.getX() - interpolated.get(0).getX() > 0 && pos.getZ() - interpolated.get(0).getZ() < 0)){
-                    diagonal1 = true;
+                BlockPos firstInterpolated = interpolated.get(0);
+                int dx = pos.getX() - firstInterpolated.getX();
+                int dz = pos.getZ() - firstInterpolated.getZ();
+
+                if (dx < 0 && dz > 0 || dx > 0 && dz < 0){
+                    roadDirection = RoadDirection.DIAGONAL_1;
                 }
-                else if ((pos.getX() - interpolated.get(0).getX() < 0 && pos.getZ() - interpolated.get(0).getZ() < 0)
-                            || (pos.getX() - interpolated.get(0).getX() > 0 && pos.getZ() - interpolated.get(0).getZ() > 0)) {
-                    diagonal2 = true;
+                else if (dx < 0 && dz < 0 || dx > 0 && dz > 0) {
+                    roadDirection = RoadDirection.DIAGONAL_2;
                 }
+                else if (dx == 0 && dz != 0) {
+                    roadDirection = RoadDirection.Z_AXIS;
+                }
+
                 for (BlockPos interp : interpolated) {
-                    Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache, diagonal1, diagonal2);
+                    Set<BlockPos> widthSetInterp = generateWidth(interp, width / 2, widthCache, roadDirection);
                     roadSegments.put(interp, widthSetInterp);
                 }
             }
 
-            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache, diagonal1, diagonal2);
+            Set<BlockPos> widthSet = generateWidth(pos, width / 2, widthCache, roadDirection);
             roadSegments.put(pos, widthSet);
         }
 
@@ -213,29 +218,47 @@ public class RoadPathCalculator {
         return Math.floorDiv(value, gridSize) * gridSize;
     }
 
-    private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache, boolean diagonal1, boolean diagonal2) {
+    private static Set<BlockPos> generateWidth(BlockPos center, int radius, Set<BlockPos> widthPositionsCache, RoadDirection direction) {
         Set<BlockPos> segmentWidthPositions = new HashSet<>();
 
         int centerX = center.getX();
         int centerZ = center.getZ();
         int y = 0;
 
-        for (int dx = -radius; dx <= radius; dx++) {
+        if (direction == RoadDirection.X_AXIS) {
             for (int dz = -radius; dz <= radius; dz++) {
-                if (diagonal2) {
-                    if ((dx == -radius && dz == -radius) || (dx == radius && dz == radius)) {
-                        continue;
-                    }
-                }
-                if (diagonal1) {
-                    if ((dx == -radius && dz == radius) || (dx == radius && dz == -radius)) {
-                        continue;
-                    }
-                }
-                BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
+                BlockPos pos = new BlockPos(centerX, y, centerZ + dz);
                 if (!widthPositionsCache.contains(pos)) {
                     widthPositionsCache.add(pos);
                     segmentWidthPositions.add(pos);
+                }
+            }
+        } else if (direction == RoadDirection.Z_AXIS) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                BlockPos pos = new BlockPos(centerX + dx, y, centerZ);
+                if (!widthPositionsCache.contains(pos)) {
+                    widthPositionsCache.add(pos);
+                    segmentWidthPositions.add(pos);
+                }
+            }
+        } else {
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (direction == RoadDirection.DIAGONAL_2) {
+                        if ((dx == -radius && dz == -radius) || (dx == radius && dz == radius)) {
+                            continue;
+                        }
+                    }
+                    if (direction == RoadDirection.DIAGONAL_1) {
+                        if ((dx == -radius && dz == radius) || (dx == radius && dz == -radius)) {
+                            continue;
+                        }
+                    }
+                    BlockPos pos = new BlockPos(centerX + dx, y, centerZ + dz);
+                    if (!widthPositionsCache.contains(pos)) {
+                        widthPositionsCache.add(pos);
+                        segmentWidthPositions.add(pos);
+                    }
                 }
             }
         }

@@ -214,7 +214,7 @@ public class RoadFeature extends Feature<RoadFeatureConfig> {
         BlockState material = materials.get(deterministicRandom.nextInt(materials.size()));
         setBlockState(structureWorldAccess, surfacePos.down(), material);
 
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < 3; i++) {
             BlockState blockStateUp = structureWorldAccess.getBlockState(surfacePos.up(i));
             if (!blockStateUp.getBlock().equals(Blocks.AIR) && !blockStateUp.isIn(BlockTags.LOGS) && !blockStateUp.isIn(BlockTags.FENCES)) {
                 setBlockState(structureWorldAccess, surfacePos.up(i), Blocks.AIR.getDefaultState());
