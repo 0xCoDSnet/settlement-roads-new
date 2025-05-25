@@ -1,8 +1,8 @@
 package net.countered.settlementroads;
 
 import net.countered.datagen.ModWorldGenerator;
-import net.countered.settlementroads.features.ModConfiguredFeatures;
-import net.countered.settlementroads.features.ModPlacedFeatures;
+import net.countered.settlementroads.features.config.ModConfiguredFeatures;
+import net.countered.settlementroads.features.config.ModPlacedFeatures;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.minecraft.registry.RegistryBuilder;

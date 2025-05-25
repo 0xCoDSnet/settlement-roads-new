@@ -1,4 +1,4 @@
-package net.countered.settlementroads.features;
+package net.countered.settlementroads.features.config;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -21,9 +21,8 @@ public class RoadFeatureConfig implements FeatureConfig {
                             Codec.INT.listOf().fieldOf("width").forGetter(RoadFeatureConfig::getWidths),
                             Codec.INT.listOf().fieldOf("quality").forGetter(RoadFeatureConfig::getQualities)
                     )
-                    .apply(instance, RoadFeatureConfig::new));
-
-
+                    .apply(instance, RoadFeatureConfig::new)
+    );
 
     public RoadFeatureConfig(List<List<BlockState>> artificialMaterials, List<List<BlockState>> naturalMaterials, List<Integer> width, List<Integer> quality) {
         this.artificialMaterials = artificialMaterials;
