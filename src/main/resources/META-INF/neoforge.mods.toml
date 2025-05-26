@@ -7,7 +7,7 @@ license="CC0-1.0"
 
 [[mods]]
 modId="settlement_roads"
-version="1.0.1"
+version="2.0.1"
 displayName="Countered's Settlement Roads"
 authors="Countered"
 description='''A mod that generates roads between villages'''
