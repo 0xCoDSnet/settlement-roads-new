@@ -78,6 +78,7 @@ tasks.register("curseforge", TaskPublishCurseForge) {
 
 processResources {
 	inputs.property "version", project.version
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
 	filesMatching("fabric.mod.json") {
 		expand "version": project.version
@@ -101,6 +102,17 @@ java {
 jar {
 	from("LICENSE") {
 		rename { "${it}_${project.base.archivesName.get()}"}
+	}
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.withType(Jar).configureEach {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+sourceSets {
+	main {
+		resources.srcDir 'src/main/generated'
 	}
 }
 

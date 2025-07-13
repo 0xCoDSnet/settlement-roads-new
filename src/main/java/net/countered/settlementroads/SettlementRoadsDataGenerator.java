@@ -1,6 +1,7 @@
 package net.countered.settlementroads;
 
 import net.countered.datagen.ModWorldGenerator;
+import net.countered.datagen.ModLanguageProvider;
 import net.countered.settlementroads.features.config.ModConfiguredFeatures;
 import net.countered.settlementroads.features.config.ModPlacedFeatures;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
@@ -20,5 +21,7 @@ public class SettlementRoadsDataGenerator implements DataGeneratorEntrypoint {
 	public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
 		FabricDataGenerator.Pack pack = fabricDataGenerator.createPack();
 		pack.addProvider(ModWorldGenerator::new);
+		pack.addProvider(ModLanguageProvider.EnUsProvider::new);
+		pack.addProvider(ModLanguageProvider.RuRuProvider::new);
 	}
 }
