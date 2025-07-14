@@ -8,8 +8,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
-
-import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 
 public class Road {
@@ -28,21 +28,27 @@ public class Road {
         Random random = Random.create();
         int width = getRandomWidth(random, context);
         int type = allowedRoadTypes(random);
-        // if all road types are disabled in config
         if (type == -1) {
             return;
         }
-        List<BlockState> material = (type == 1) ? getRandomNaturalRoadMaterials(random, context) : getRandomArtificialRoadMaterials(random, context);
+        List<BlockState> material = (type == 1)
+                ? getRandomNaturalRoadMaterials(random, context)
+                : getRandomArtificialRoadMaterials(random, context);
 
         BlockPos start = structureConnection.from();
         BlockPos end = structureConnection.to();
 
-        List<Records.RoadSegmentPlacement> roadSegmentPlacementList = RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld, maxSteps);
-
-        List<Records.RoadData> roadDataList = new ArrayList<>(serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, ArrayList::new));
-        roadDataList.add(new Records.RoadData(width, type, material, roadSegmentPlacementList));
-
-        serverWorld.setAttached(WorldDataAttachment.ROAD_DATA_LIST, roadDataList);
+        CompletableFuture
+                .supplyAsync(() -> RoadPathCalculator.calculateAStarRoadPath(start, end, width, serverWorld, maxSteps))
+                .thenAccept(roadSegmentPlacementList -> serverWorld.getServer().execute(() -> {
+                    synchronized (WorldDataAttachment.ROAD_DATA_LOCK) {
+                        List<Records.RoadData> roadDataList = new CopyOnWriteArrayList<>(
+                                serverWorld.getAttachedOrCreate(WorldDataAttachment.ROAD_DATA_LIST, CopyOnWriteArrayList::new)
+                        );
+                        roadDataList.add(new Records.RoadData(width, type, material, roadSegmentPlacementList));
+                        serverWorld.setAttached(WorldDataAttachment.ROAD_DATA_LIST, roadDataList);
+                    }
+                }));
     }
 
     private static int allowedRoadTypes(Random deterministicRandom) {

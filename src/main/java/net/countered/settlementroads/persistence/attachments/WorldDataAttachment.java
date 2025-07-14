@@ -29,6 +29,7 @@ public class WorldDataAttachment {
             Identifier.of(SettlementRoads.MOD_ID, "road_chunk_data_map"),
             Codec.list(Records.RoadData.CODEC)
     );
+    public static final Object ROAD_DATA_LOCK = new Object();
 
     public static void registerWorldDataAttachment() {
         LOGGER.info("Registering WorldData attachment");

@@ -39,6 +39,8 @@ dependencies {
 	modImplementation include ("maven.modrinth:midnightlib:${project.midnightlib_version}")
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	testImplementation "org.junit.jupiter:junit-jupiter:5.8.1"
+	testRuntimeOnly sourceSets.main.runtimeClasspath
 }
 
 
@@ -108,6 +110,10 @@ jar {
 
 tasks.withType(Jar).configureEach {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+test {
+	useJUnitPlatform()
 }
 
 sourceSets {
