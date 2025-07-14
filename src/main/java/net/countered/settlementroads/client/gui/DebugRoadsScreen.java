@@ -14,12 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DebugRoadsScreen extends Screen {
-    private static boolean registered = false;
     private static DebugRoadsScreen active;
+
+    private static final HudRenderCallback HUD_CB = (ctx, tick) -> {
+        if (active != null) active.onHudRender(ctx, tick);
+    };
+
+    static {
+        HudRenderCallback.EVENT.register(HUD_CB);
+    }
 
     private final MinecraftClient client;
     private float zoom = 2f;
-    private final HudRenderCallback callback = this::onHudRender;
 
     public DebugRoadsScreen(MinecraftClient client) {
         super(Text.literal("debug_roads"));
@@ -28,10 +34,6 @@ public class DebugRoadsScreen extends Screen {
 
     @Override
     protected void init() {
-        if (!registered) {
-            HudRenderCallback.EVENT.register(callback);
-            registered = true;
-        }
         active = this;
     }
 
@@ -55,7 +57,6 @@ public class DebugRoadsScreen extends Screen {
     }
 
     private void onHudRender(DrawContext drawContext, net.minecraft.client.render.RenderTickCounter tickCounter) {
-        if (active != this) return;
         RoadGraph graph = buildGraph();
         drawGraph(new FabricDrawContext(drawContext), graph,
                 client.getWindow().getScaledWidth(),
