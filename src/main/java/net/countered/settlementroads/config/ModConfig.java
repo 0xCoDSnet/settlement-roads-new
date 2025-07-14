@@ -34,4 +34,16 @@ public class ModConfig extends MidnightConfig {
     // "Place waypoints instead of roads"
     @Entry(category = "roads")
     public static boolean placeWaypoints = false;
+
+    // "Enable debug map"
+    @Entry(category = "client")
+    public static boolean enableDebugMap = false;
+
+    // "Debug line color"
+    @Entry(category = "client")
+    public static int debugLineColor = 0xFFFFD000;
+
+    // "Debug node color"
+    @Entry(category = "client")
+    public static int debugNodeColor = 0xFFAA00FF;
 }

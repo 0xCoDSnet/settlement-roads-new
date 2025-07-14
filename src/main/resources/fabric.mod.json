@@ -15,12 +15,15 @@
 	"icon": "assets/settlement-roads/icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": [
-			"net.countered.settlementroads.SettlementRoads"
-		],
-		"fabric-datagen": [
-			"net.countered.settlementroads.SettlementRoadsDataGenerator"
-		]
+                "main": [
+                        "net.countered.settlementroads.SettlementRoads"
+                ],
+                "client": [
+                        "net.countered.settlementroads.client.SettlementRoadsClient"
+                ],
+                "fabric-datagen": [
+                        "net.countered.settlementroads.SettlementRoadsDataGenerator"
+                ]
 	},
 	"mixins": [
 		"settlement-roads.mixins.json"
